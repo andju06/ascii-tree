@@ -27,7 +27,7 @@ export class GiftPopup {
     message.textContent = gift.message;
     date.dateTime = gift.createdAt;
     date.textContent = dateFormat.format(new Date(gift.createdAt));
-    swatch.style.background = gift.color;
+    swatch.style.backgroundColor = gift.color;
     swatch.classList.toggle("is-ornament", gift.shape === "ornament");
     this.modal.open();
   }

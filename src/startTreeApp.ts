@@ -19,8 +19,9 @@ import { BoxPilePlacer } from "./gifts/BoxPilePlacer";
 import { GiftLayout } from "./gifts/GiftLayout";
 import { OrnamentPlacer } from "./gifts/OrnamentPlacer";
 import { OpenedGifts } from "./gifts/OpenedGifts";
-import { randomGiftStyle } from "./gifts/style";
 import { SubmitCooldown } from "./gifts/SubmitCooldown";
+import { randomGiftStyle } from "./gifts/style";
+import { ReadReplies } from "./replies/ReadReplies";
 import { HudView, type RunStatus } from "./hud/HudView";
 import { bindControls } from "./interaction/Controls";
 import { Picker } from "./interaction/Picker";
@@ -93,8 +94,9 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
     ornament: new OrnamentPlacer(treeShape),
   });
   const giftLayer = new GiftLayer(giftLayout, new OpenedGifts(), effects, SEED);
-  const giftRepository = createGiftRepository(giftApiUrl);
+  const { gifts: giftRepository, replies: replyRepository } = createGiftRepository(giftApiUrl);
   const cooldown = new SubmitCooldown();
+  const readReplies = new ReadReplies();
 
   const sources: readonly ParticleSource[] = [treeStore, giftLayer.store, effects];
   const GIFT_SOURCE = sources.indexOf(giftLayer.store);
@@ -207,8 +209,19 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
       empty: requireElement("guestbook-empty"),
     },
     lifetime.signal,
-    () => giftLayer.guestbook(),
-    (id) => giftLayer.acknowledge(id),
+    {
+      entries: () => giftLayer.guestbook(),
+      replies: () => replyRepository.current(),
+      isReplyRead: (id) => readReplies.has(id),
+      readGift: (id) => giftLayer.acknowledge(id),
+      readReply: (id) => readReplies.add(id),
+      reply: async (input) => {
+        const wait = cooldown.remainingSeconds();
+        if (wait > 0) throw new Error(`${wait}초 후에 다시 남길 수 있어요.`);
+        await replyRepository.create(input);
+        cooldown.mark();
+      },
+    },
   );
   syncGuestbook = () => guestbook.render();
 
@@ -223,6 +236,7 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
     giftLayer.addGifts(gifts, clock.time, "fall");
     syncGuestbook();
   });
+  const unsubscribeReplies = replyRepository.subscribe(() => syncGuestbook());
 
   let reloadToken = 0;
   const rewindButton = requireElement<HTMLButtonElement>("gift-rewind");
@@ -257,30 +271,6 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
 
   const listButton = requireElement<HTMLButtonElement>("gift-list");
   listButton.addEventListener("click", () => guestbook.open(), { signal: lifetime.signal });
-
-  const refreshButton = requireElement<HTMLButtonElement>("gift-refresh");
-  refreshButton.addEventListener(
-    "click",
-    () => {
-      const token = ++reloadToken;
-      refreshButton.disabled = true;
-      giftRepository
-        .list()
-        .then((gifts) => {
-          if (token !== reloadToken) return;
-          hoverLabel.show(null);
-          giftLayer.setHovered(null);
-          canvas.style.cursor = "";
-          giftLayer.reload(gifts, clock.time);
-          syncGuestbook();
-        })
-        .catch((error: unknown) => console.warn("[gifts] failed to reload", error))
-        .finally(() => {
-          if (token === reloadToken) refreshButton.disabled = false;
-        });
-    },
-    { signal: lifetime.signal },
-  );
 
   /** Reaction when a gift is clicked; `unwrapped` is true only on the first open in this browser. */
   type GiftOpener = (gift: Gift, unwrapped: boolean) => void;
@@ -365,6 +355,7 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
     cancelAnimationFrame(frameHandle);
     unbindControls();
     unsubscribeGifts();
+    unsubscribeReplies();
     lifetime.abort();
   };
 }

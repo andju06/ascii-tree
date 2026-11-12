@@ -27,14 +27,6 @@ export function TreeApp() {
             <div className="hud-time" id="hud-time">
               t 0.00s
             </div>
-            <button type="button" className="hud-icon" id="gift-refresh" aria-label="새로고침" title="새로고침">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M4.5 12a7.5 7.5 0 0 1 12.6-5.5" />
-                <path d="M19.5 12a7.5 7.5 0 0 1-12.6 5.5" />
-                <path d="M16 3.2 V7.4 H20.2" />
-                <path d="M8 20.8 V16.6 H3.8" />
-              </svg>
-            </button>
             <button type="button" className="gift-refresh" id="gift-list">
               방명록 한눈에 보기
             </button>
@@ -86,7 +78,7 @@ export function TreeApp() {
             <div className="segmented" id="gift-shapes">
               <label>
                 <input type="radio" name="gift-shape" value="box" defaultChecked />
-                <span>선물상자</span>
+                <span><i className="present" aria-hidden="true" />선물상자</span>
               </label>
               <label>
                 <input type="radio" name="gift-shape" value="ornament" />

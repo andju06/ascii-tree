@@ -1,5 +1,8 @@
 import type { Gift } from "@/gifts/Gift";
 import { validateNewGift } from "@/gifts/validation";
+import { clientIp, readJson, sha256Hex } from "./request";
+import type { RecentWrites } from "./RecentWrites";
+import type { ReplyStore } from "./ReplyStore";
 import type { GiftStore } from "./GiftStore";
 
 export interface GiftApiConfig {
@@ -20,52 +23,43 @@ function errorResponse(message: string, status: number): Response {
   return Response.json({ error: message }, { status });
 }
 
-function clientIp(request: Request): string {
-  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return forwarded || request.headers.get("x-real-ip") || "unknown";
-}
-
-async function sha256Hex(value: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
-  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
 /** Framework-agnostic request handling for `GET/POST /gifts` on top of a `GiftStore`. */
 export class GiftApi {
   constructor(
     private readonly store: GiftStore,
+    private readonly replies: ReplyStore,
+    private readonly recent: RecentWrites,
     private readonly config: GiftApiConfig,
   ) {}
 
   async list(url: URL): Promise<Response> {
     const sinceParam = url.searchParams.get("since");
-    if (sinceParam === null) return Response.json({ gifts: await this.store.latest(this.config.listLimit) });
+    if (sinceParam === null) {
+      const gifts = await this.store.latest(this.config.listLimit);
+      const replies = await this.replies.forParents(gifts.map((gift) => gift.id));
+      return Response.json({ gifts, replies });
+    }
 
     const since = new Date(sinceParam);
     if (Number.isNaN(since.getTime())) return errorResponse("since 값이 올바르지 않습니다.", 400);
-    return Response.json({ gifts: await this.store.createdAfter(since, this.config.listLimit) });
+    const [gifts, replies] = await Promise.all([
+      this.store.createdAfter(since, this.config.listLimit),
+      this.replies.createdAfter(since, this.config.listLimit),
+    ]);
+    return Response.json({ gifts, replies });
   }
 
   async create(request: Request): Promise<Response> {
     const { maxBodyBytes, cooldownSeconds, ipSalt } = this.config;
-    if (Number(request.headers.get("content-length") ?? 0) > maxBodyBytes) return errorResponse("요청이 너무 큽니다.", 413);
+    const body = await readJson(request, maxBodyBytes);
+    if (!body.ok) return body.response;
 
-    const text = await request.text();
-    if (new TextEncoder().encode(text).length > maxBodyBytes) return errorResponse("요청이 너무 큽니다.", 413);
-
-    let payload: unknown;
-    try {
-      payload = JSON.parse(text);
-    } catch {
-      return errorResponse("JSON 형식이 올바르지 않습니다.", 400);
-    }
-
-    const result = validateNewGift(payload);
+    const result = validateNewGift(body.value);
     if (!result.ok) return errorResponse(result.error, 400);
 
     const ipHash = await sha256Hex(`${ipSalt}:${clientIp(request)}`);
     const now = new Date();
-    if (await this.store.hasRecentFrom(ipHash, new Date(now.getTime() - cooldownSeconds * 1000))) {
+    if (await this.recent.hasRecentFrom(ipHash, new Date(now.getTime() - cooldownSeconds * 1000))) {
       return errorResponse(`${cooldownSeconds}초 후에 다시 선물할 수 있어요.`, 429);
     }
 

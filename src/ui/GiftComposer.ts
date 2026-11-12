@@ -119,7 +119,7 @@ export class GiftComposer {
 
   private updatePreview(): void {
     const { swatch, sizeLabel } = this.elements;
-    swatch.style.background = this.color;
+    swatch.style.backgroundColor = this.color;
     swatch.classList.toggle("is-ornament", this.shape === "ornament");
     sizeLabel.textContent = `${GIFT_SHAPE_LABELS[this.shape]} · size ${this.size.toFixed(2)}`;
   }

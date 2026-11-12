@@ -360,16 +360,55 @@ body {
 }
 
 .swatch {
+  position: relative;
   display: inline-block;
-  width: 14px;
-  height: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  flex: 0 0 auto;
+  width: 18px;
+  height: 16px;
   border-radius: 2px;
+  box-shadow: inset 0 4px 0 rgba(255, 255, 255, 0.34), 0 1px 0 rgba(0, 0, 0, 0.4);
+}
+
+.swatch:not(.is-ornament)::before {
+  content: "";
+  position: absolute;
+  inset: -3px 0 0;
+  background:
+    radial-gradient(circle at 5px 3px, #ffe9a8 2.5px, transparent 3px),
+    radial-gradient(circle at 13px 3px, #ffe9a8 2.5px, transparent 3px),
+    linear-gradient(#ffe14a, #ffe14a) center / 3px 100% no-repeat,
+    linear-gradient(#ffe14a, #ffe14a) center 42% / 100% 3px no-repeat;
+  pointer-events: none;
 }
 
 .swatch.is-ornament {
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.25), inset 2px 2px 0 rgba(255, 255, 255, 0.35);
+}
+
+.present {
+  display: inline-block;
+  width: 16px;
+  height: 14px;
+  margin-right: 6px;
+  vertical-align: -2px;
+  border-radius: 2px;
+  background: #e8394a;
+  box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.34);
+  position: relative;
+}
+
+.present::before {
+  content: "";
+  position: absolute;
+  inset: -3px 0 0;
+  background:
+    radial-gradient(circle at 4px 3px, #ffe9a8 2.5px, transparent 3px),
+    radial-gradient(circle at 12px 3px, #ffe9a8 2.5px, transparent 3px),
+    linear-gradient(#ffe14a, #ffe14a) center / 2px 100% no-repeat,
+    linear-gradient(#ffe14a, #ffe14a) center 42% / 100% 2px no-repeat;
 }
 
 .choice {
@@ -550,23 +589,30 @@ body {
   background: #b39ddb;
 }
 
+.guestbook-card {
+  margin: 0 0 8px;
+  padding: 8px;
+  background: #070910;
+  border: 1px solid #2a3040;
+  border-radius: 4px;
+}
+
+.guestbook-card:hover {
+  border-color: #d9a441;
+}
+
 .guestbook-item {
   display: flex;
   gap: 8px;
   width: 100%;
-  margin: 0 0 6px;
-  padding: 8px;
+  margin: 0;
+  padding: 0;
   text-align: left;
   font: inherit;
   color: var(--text);
-  background: #070910;
-  border: 1px solid #2a3040;
-  border-radius: 4px;
+  background: transparent;
+  border: none;
   cursor: pointer;
-}
-
-.guestbook-item:hover {
-  border-color: #d9a441;
 }
 
 .guestbook-body {
@@ -597,6 +643,88 @@ body {
   line-height: 1.45;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+.guestbook-thread {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-top: 4px;
+}
+
+.reply-list,
+.reply-form,
+.reply-full {
+  align-self: stretch;
+}
+
+.reply-list {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0 0 0 8px;
+}
+
+.reply-item {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  margin: 0 0 4px;
+  padding: 6px 8px;
+  text-align: left;
+  font: inherit;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  border-left: 2px solid #7e57c2;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.reply-item:hover {
+  background: rgba(126, 87, 194, 0.12);
+}
+
+.reply-dot {
+  align-self: center;
+  width: 6px;
+  height: 6px;
+  border-radius: 99px;
+  background: #ffe14a;
+}
+
+.reply-toggle {
+  margin-top: 0;
+  padding: 0;
+  font: inherit;
+  font-size: 11px;
+  color: #b39ddb;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.reply-toggle:hover {
+  color: #ffe14a;
+}
+
+.reply-form {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.reply-form .field {
+  margin-bottom: 0;
+}
+
+.reply-full {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.reply-form .btn {
+  justify-self: end;
 }
 
 .popup-header {
