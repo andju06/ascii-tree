@@ -38,36 +38,77 @@ export function bindControls(dragTarget: HTMLElement, actions: ControlActions): 
         break;    }
   };
 
+  const pointers = new Map<number, { x: number; y: number }>();
   let dragging = false;
   let travelled = 0;
+  let pinchDistance = 0;
+  let pinched = false;
 
   const local = (event: PointerEvent): [number, number] => {
     const rect = dragTarget.getBoundingClientRect();
     return [event.clientX - rect.left, event.clientY - rect.top];
   };
 
-  const onPointerDown = (event: PointerEvent): void => {
-    dragging = true;
-    travelled = 0;
+  const fingerSpan = (): number => {
+    const [a, b] = pointers.values();
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  };
+
+  const capture = (event: PointerEvent): void => {
+    if (!event.isTrusted) return;
     dragTarget.setPointerCapture(event.pointerId);
   };
-  const onPointerMove = (event: PointerEvent): void => {
-    if (dragging) {
-      travelled += Math.abs(event.movementX) + Math.abs(event.movementY);
-      actions.rotate(event.movementX, event.movementY);
+
+  const release = (event: PointerEvent): void => {
+    if (dragTarget.hasPointerCapture(event.pointerId)) dragTarget.releasePointerCapture(event.pointerId);
+  };
+
+  const onPointerDown = (event: PointerEvent): void => {
+    pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    capture(event);
+    if (pointers.size === 1) {
+      dragging = true;
+      travelled = 0;
       return;
     }
-    actions.hover(...local(event));
+    pinchDistance = fingerSpan();
+    pinched = true;
+    travelled = CLICK_TOLERANCE_PX;
   };
-  const onPointerUp = (event: PointerEvent): void => {
-    if (dragging && travelled < CLICK_TOLERANCE_PX) actions.click(...local(event));
+  const onPointerMove = (event: PointerEvent): void => {
+    if (!pointers.has(event.pointerId)) {
+      actions.hover(...local(event));
+      return;
+    }
+    pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (pointers.size >= 2) {
+      const next = fingerSpan();
+      if (pinchDistance > 0 && next > 0) actions.zoom(Math.log(next / pinchDistance));
+      pinchDistance = next;
+      return;
+    }
+    travelled += Math.abs(event.movementX) + Math.abs(event.movementY);
+    actions.rotate(event.movementX, event.movementY);
+  };
+  const endPointer = (event: PointerEvent, click: boolean): void => {
+    pointers.delete(event.pointerId);
+    release(event);
+    if (pointers.size >= 2) {
+      pinchDistance = fingerSpan();
+      return;
+    }
+    if (pointers.size === 1) {
+      pinchDistance = 0;
+      travelled = CLICK_TOLERANCE_PX;
+      return;
+    }
+    if (click && dragging && !pinched && travelled < CLICK_TOLERANCE_PX) actions.click(...local(event));
     dragging = false;
-    if (dragTarget.hasPointerCapture(event.pointerId)) dragTarget.releasePointerCapture(event.pointerId);
+    pinched = false;
+    pinchDistance = 0;
   };
-  const onPointerCancel = (event: PointerEvent): void => {
-    dragging = false;
-    if (dragTarget.hasPointerCapture(event.pointerId)) dragTarget.releasePointerCapture(event.pointerId);
-  };
+  const onPointerUp = (event: PointerEvent): void => endPointer(event, true);
+  const onPointerCancel = (event: PointerEvent): void => endPointer(event, false);
 
   const onWheel = (event: WheelEvent): void => {
     event.preventDefault();
