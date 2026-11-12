@@ -9,6 +9,8 @@ import { Typer } from "./editor/Typer";
 import { TREE_SOURCE } from "./editor/treeSource";
 import { EASTER_GIFT, SANTA_ESCAPED, SANTA_MARK, SANTA_MARK_FONT } from "./easter/easterGift";
 import { SantaRunner } from "./easter/SantaRunner";
+import { SNOWMAN_GIFT, SNOWMAN_MELTED, SNOWMAN_SERVED } from "./easter/snowmanGift";
+import { SNOWMAN_SPRITE, SnowmanChase } from "./easter/SnowmanChase";
 import { EffectsSystem } from "./effects/EffectsSystem";
 import type { Gift } from "./gifts/Gift";
 import { createGiftRepository } from "./gifts/createGiftRepository";
@@ -90,7 +92,10 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
 
   const effects = new EffectsSystem();
   const giftLayout = new GiftLayout(SEED, {
-    box: new BoxPilePlacer({ goldRibbonIds: new Set([EASTER_GIFT.id]) }),
+    box: new BoxPilePlacer({
+      goldRibbonIds: new Set([EASTER_GIFT.id]),
+      anchors: new Map([[SNOWMAN_GIFT.id, { angle: -1.15, radius: 3.45 }]]),
+    }),
     ornament: new OrnamentPlacer(treeShape),
   });
   const giftLayer = new GiftLayer(giftLayout, new OpenedGifts(), effects, SEED);
@@ -109,6 +114,7 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
     sprites,
   ]);
   const santa = new SantaRunner(sprites, effects);
+  const snowman = new SnowmanChase(sprites, effects);
   const picker = new Picker();
 
   const typer = new Typer(new CodeScript(TREE_SOURCE), bus, Random.derive(SEED, "typer"), {
@@ -169,13 +175,11 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
 
   const hint = new GiftHint(sprites, () =>
     giftLayer.unopenedMarks().map((mark) =>
-      mark.id === EASTER_GIFT.id
-        ? { ...mark, glyph: SANTA_MARK, font: SANTA_MARK_FONT }
-        : { ...mark, glyph: "♥" },
+      mark.id === EASTER_GIFT.id ? { ...mark, glyph: SANTA_MARK, font: SANTA_MARK_FONT } : { ...mark, glyph: "♥" },
     ),
   );
   const hoverLabel = new GiftHoverLabel(sprites, giftLayer, (gift) =>
-    gift.id === EASTER_GIFT.id ? "From. ???" : `From. ${gift.author}`,
+    gift.id === EASTER_GIFT.id || gift.id === SNOWMAN_GIFT.id ? "From. ???" : `From. ${gift.author}`,
   );
 
   let completed = false;
@@ -194,6 +198,7 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
     typer.reset();
     effects.reset();
     santa.reset();
+    snowman.reset();
     hint.reset();
     hoverLabel.show(null);
     giftLayer.reset();
@@ -201,7 +206,7 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
     completed = false;
   });
 
-  giftLayer.addGifts([EASTER_GIFT], clock.time, "rise", { pinned: true, wobble: true });
+  giftLayer.addGifts([EASTER_GIFT, SNOWMAN_GIFT], clock.time, "rise", { pinned: true, wobble: true });
   const guestbook = new GuestbookList(
     {
       root: requireElement("guestbook"),
@@ -249,6 +254,7 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
       giftLayer.setHovered(null);
       canvas.style.cursor = "";
       santa.reset();
+      snowman.reset();
       giftRepository
         .list()
         .then((gifts) => {
@@ -270,7 +276,34 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
   );
 
   const listButton = requireElement<HTMLButtonElement>("gift-list");
-  listButton.addEventListener("click", () => guestbook.open(), { signal: lifetime.signal });
+  const refreshButton = requireElement<HTMLButtonElement>("guestbook-refresh");
+  let refreshToken = 0;
+  const refreshGuestbook = (): void => {
+    const token = ++refreshToken;
+    refreshButton.disabled = true;
+    giftRepository
+      .list()
+      .then((gifts) => {
+        if (token !== refreshToken) return;
+        giftLayer.addGifts(gifts, clock.time, "fall");
+        syncGuestbook();
+      })
+      .catch((error: unknown) => {
+        console.warn("[gifts] failed to refresh guestbook", error);
+      })
+      .finally(() => {
+        if (token === refreshToken) refreshButton.disabled = false;
+      });
+  };
+  listButton.addEventListener(
+    "click",
+    () => {
+      guestbook.open();
+      refreshGuestbook();
+    },
+    { signal: lifetime.signal },
+  );
+  refreshButton.addEventListener("click", () => refreshGuestbook(), { signal: lifetime.signal });
 
   /** Reaction when a gift is clicked; `unwrapped` is true only on the first open in this browser. */
   type GiftOpener = (gift: Gift, unwrapped: boolean) => void;
@@ -283,6 +316,15 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
         const top = giftLayer.topOf(gift.id);
         if (unwrapped && top) santa.start(top, clock.time);
         else popup.show(SANTA_ESCAPED);
+      },
+    ],
+    [
+      SNOWMAN_GIFT.id,
+      (gift, unwrapped) => {
+        const top = giftLayer.topOf(gift.id);
+        if (unwrapped && top) snowman.start(top, clock.time);
+        else if (snowman.catchable) snowman.catch(clock.time);
+        else if (!snowman.busy) popup.show(snowman.result() === "caught" ? SNOWMAN_SERVED : SNOWMAN_MELTED);
       },
     ],
   ]);
@@ -300,11 +342,16 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
     rotate: (dx, dy) => camera.drag(dx, dy),
     hover: (x, y) => {
       const gift = giftUnder(x, y);
-      canvas.style.cursor = gift ? "pointer" : "";
+      const catching = snowman.catchable && sprites.contains(SNOWMAN_SPRITE, x, y, 36);
+      canvas.style.cursor = gift || catching ? "pointer" : "";
       giftLayer.setHovered(gift?.id ?? null);
       hoverLabel.show(gift);
     },
     click: (x, y) => {
+      if (snowman.catchable && sprites.contains(SNOWMAN_SPRITE, x, y, 36)) {
+        snowman.catch(clock.time);
+        return;
+      }
       const gift = giftUnder(x, y);
       if (!gift) return;
       hoverLabel.show(null);
@@ -314,7 +361,7 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
     },
   });
 
-  const updatables: readonly Updatable[] = [typer, scene, giftLayer, santa, hint, effects, camera];
+  const updatables: readonly Updatable[] = [typer, scene, giftLayer, santa, snowman, hint, effects, camera];
 
   function currentStatus(): RunStatus {
     if (clock.paused) return "paused";

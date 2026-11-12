@@ -3,6 +3,7 @@ import type { Random } from "../core/Random";
 import type { Rgb } from "../scene/ParticleStore";
 import type { Gift } from "./Gift";
 import type { GiftPlacer, PlacedGift } from "./GiftLayout";
+import { snowmanMetrics } from "./geometry/snowmanGeometry";
 import { hexToRgb, luminance } from "./style";
 
 export interface BoxPileOptions {
@@ -16,6 +17,8 @@ export interface BoxPileOptions {
   readonly fallHeight: number;
   /** Gifts that always get a gold ribbon, such as the Santa box. */
   readonly goldRibbonIds?: ReadonlySet<string>;
+  /** Gifts stood on the snow at a fixed spot, outside the pile. */
+  readonly anchors?: ReadonlyMap<string, { angle: number; radius: number }>;
 }
 
 const DEFAULT_OPTIONS: BoxPileOptions = {
@@ -42,6 +45,9 @@ export class BoxPilePlacer implements GiftPlacer {
   }
 
   place(gift: Gift, rng: Random): PlacedGift {
+    const anchor = this.options.anchors?.get(gift.id);
+    if (anchor) return this.placeAnchored(gift, anchor);
+
     const { sizeScale, innerRadius, outerRadius, maxStackHeight, attempts, riseDepth, fallHeight } = this.options;
     const size = gift.size * sizeScale;
     const width = size;
@@ -78,6 +84,30 @@ export class BoxPilePlacer implements GiftPlacer {
           : rng.random() < 0.5
             ? RIBBON_GOLD
             : RIBBON_WHITE,
+      riseDepth,
+      fallHeight,
+    };
+    this.placed.push(placed);
+    return placed;
+  }
+
+  /** Stands a snowman on open snow instead of stacking it with the presents. */
+  private placeAnchored(gift: Gift, anchor: { angle: number; radius: number }): PlacedGift {
+    const { sizeScale, riseDepth, fallHeight } = this.options;
+    const width = gift.size * sizeScale;
+    const { height, depth } = snowmanMetrics(width);
+    const placed: PlacedGift = {
+      gift,
+      x: anchor.radius * Math.cos(anchor.angle),
+      y: 0,
+      z: anchor.radius * Math.sin(anchor.angle),
+      width,
+      height,
+      depth,
+      yaw: anchor.angle - Math.PI / 2,
+      footprint: width * 0.55,
+      body: hexToRgb(gift.color),
+      accent: [0.86, 0.18, 0.24],
       riseDepth,
       fallHeight,
     };

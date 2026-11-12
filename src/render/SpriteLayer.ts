@@ -30,9 +30,17 @@ export interface SpriteSink {
 const MIN_FONT_PX = 9;
 const OCCLUDED_ALPHA = 0.25;
 
+interface SpriteBounds {
+  readonly left: number;
+  readonly top: number;
+  readonly right: number;
+  readonly bottom: number;
+}
+
 /** Draws fixed ASCII art at projected world positions, dimmed when the grid has something in front. */
 export class SpriteLayer implements Overlay, SpriteSink {
   private readonly sprites = new Map<string, Sprite>();
+  private readonly bounds = new Map<string, SpriteBounds>();
 
   constructor(private readonly camera: CameraView) {}
 
@@ -46,13 +54,22 @@ export class SpriteLayer implements Overlay, SpriteSink {
 
   clear(): void {
     this.sprites.clear();
+    this.bounds.clear();
+  }
+
+  /** True when the last frame drew `id` under this CSS-pixel point, with a little extra padding. */
+  contains(id: string, x: number, y: number, pad = 12): boolean {
+    const box = this.bounds.get(id);
+    if (!box) return false;
+    return x >= box.left - pad && x <= box.right + pad && y >= box.top - pad && y <= box.bottom + pad;
   }
 
   render(ctx: CanvasRenderingContext2D, viewport: Viewport, frame: FrameBuffer): void {
+    this.bounds.clear();
     if (this.sprites.size === 0) return;
     ctx.textBaseline = "top";
 
-    for (const sprite of this.sprites.values()) {
+    for (const [id, sprite] of this.sprites) {
       const anchor = projectPoint(this.camera, viewport, sprite.x, sprite.y, sprite.z);
       if (!anchor) continue;
 
@@ -64,6 +81,7 @@ export class SpriteLayer implements Overlay, SpriteSink {
       const blockW = Math.max(...lineWidths);
       const left = anchor.x - blockW / 2;
       const top = anchor.y - sprite.lines.length * lineH;
+      this.bounds.set(id, { left, top, right: left + blockW, bottom: top + sprite.lines.length * lineH });
 
       const occluded = !sprite.background && this.isOccluded(frame, viewport, anchor.x, anchor.y - lineH, anchor.depth);
       ctx.globalAlpha = sprite.alpha * (occluded ? OCCLUDED_ALPHA : 1);

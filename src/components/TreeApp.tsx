@@ -118,9 +118,14 @@ export function TreeApp() {
         <section className="card guestbook">
           <header className="guestbook-header">
             <h2 className="card-title">방명록</h2>
-            <button type="button" className="btn ghost small" data-close>
-              닫기
-            </button>
+            <div className="guestbook-actions">
+              <button type="button" className="btn ghost small" id="guestbook-refresh">
+                새로고침
+              </button>
+              <button type="button" className="btn ghost small" data-close>
+                닫기
+              </button>
+            </div>
           </header>
           <p className="guestbook-empty" id="guestbook-empty" hidden>
             아직 남긴 글이 없습니다.
