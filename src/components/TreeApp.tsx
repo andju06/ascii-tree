@@ -82,7 +82,7 @@ export function TreeApp() {
               </label>
               <label>
                 <input type="radio" name="gift-shape" value="ornament" />
-                <span>오너먼트</span>
+                <span><i className="bauble" aria-hidden="true" />오너먼트</span>
               </label>
             </div>
           </fieldset>

@@ -32,7 +32,7 @@ body {
 
 .viewport {
   position: relative;
-  flex: 0 0 62%;
+  flex: 0 0 76%;
   min-height: 0;
 }
 
@@ -384,8 +384,24 @@ body {
 .swatch.is-ornament {
   width: 16px;
   height: 16px;
+  margin-top: 5px;
   border-radius: 50%;
-  box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.25), inset 2px 2px 0 rgba(255, 255, 255, 0.35);
+  background-image: radial-gradient(circle at 5px 5px, rgba(255, 255, 255, 0.85) 1.6px, transparent 2.4px);
+  box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.28);
+}
+
+.swatch.is-ornament::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% - 1px);
+  width: 10px;
+  height: 6px;
+  transform: translateX(-50%);
+  background:
+    radial-gradient(circle at 50% 130%, transparent 2.2px, #c9922a 2.6px, #ffe14a 3.4px, transparent 3.8px),
+    linear-gradient(#ffe14a, #c9922a) center bottom / 6px 3px no-repeat;
+  pointer-events: none;
 }
 
 .present {
@@ -409,6 +425,34 @@ body {
     radial-gradient(circle at 12px 3px, #ffe9a8 2.5px, transparent 3px),
     linear-gradient(#ffe14a, #ffe14a) center / 2px 100% no-repeat,
     linear-gradient(#ffe14a, #ffe14a) center 42% / 100% 2px no-repeat;
+}
+
+.bauble {
+  display: inline-block;
+  position: relative;
+  width: 12px;
+  height: 12px;
+  margin-top: 4px;
+  margin-right: 6px;
+  vertical-align: -1px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 4px 4px, rgba(255, 255, 255, 0.85) 1.4px, transparent 2px),
+    #e8394a;
+  box-shadow: inset -2px -2px 0 rgba(0, 0, 0, 0.28);
+}
+
+.bauble::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% - 1px);
+  width: 8px;
+  height: 5px;
+  transform: translateX(-50%);
+  background:
+    radial-gradient(circle at 50% 130%, transparent 1.8px, #8a5a12 2.2px, #ffe14a 3px, transparent 3.4px),
+    linear-gradient(#ffe14a, #c9922a) center bottom / 5px 2.5px no-repeat;
 }
 
 .choice {
