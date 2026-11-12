@@ -118,6 +118,27 @@ export class GiftLayer implements Updatable, Resettable {
       .sort((a, b) => b.gift.createdAt.localeCompare(a.gift.createdAt));
   }
 
+  /**
+   * Reloads visitor gifts, forgets which ones this browser opened, and replays every gift
+   * — including pinned ones such as the Santa box — as a fresh wrapped arrival.
+   */
+  rewind(gifts: readonly Gift[], time: number): void {
+    this.opened.clear();
+    this.reload(gifts, time);
+    this.replayPinned(time);
+  }
+
+  /** Forgets opened gifts and replays whatever is already on the tree, used when reload fails. */
+  replayWrapped(time: number): void {
+    this.opened.clear();
+    if (this.revealTime === null) {
+      this.rebuild();
+      return;
+    }
+    this.entries.forEach((entry, index) => this.scheduleRise(entry, time + index * this.options.revealStagger));
+    this.rebuild();
+  }
+
   /** Marks a guestbook entry read without playing the unwrap burst. */
   acknowledge(id: string): void {
     const entry = this.findEntry(id);
@@ -292,6 +313,18 @@ export class GiftLayer implements Updatable, Resettable {
 
   private findEntry(id: string): GiftEntry | undefined {
     return this.entries.find((candidate) => candidate.placed.gift.id === id);
+  }
+
+  /** Pinned gifts stay put during reload, so rewind schedules their wrapped entrance itself. */
+  private replayPinned(time: number): void {
+    if (this.revealTime === null) return;
+    let delay = 0;
+    for (const entry of this.entries) {
+      if (!entry.traits.pinned) continue;
+      this.scheduleRise(entry, time + delay);
+      delay += this.options.revealStagger;
+    }
+    if (delay > 0) this.rebuild();
   }
 
   private scheduleRise(entry: GiftEntry, at: number): void {

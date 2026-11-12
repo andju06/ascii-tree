@@ -13,6 +13,21 @@ export class OpenedGifts {
   add(id: string): void {
     if (this.ids.has(id)) return;
     this.ids.add(id);
+    this.persist();
+  }
+
+  /** Drops every opened id so gifts wrap again and the Santa box can run once more. */
+  clear(): void {
+    if (this.ids.size === 0) return;
+    this.ids.clear();
+    try {
+      localStorage.removeItem(this.storageKey);
+    } catch (error) {
+      console.warn("[OpenedGifts] failed to clear", error);
+    }
+  }
+
+  private persist(): void {
     try {
       localStorage.setItem(this.storageKey, JSON.stringify([...this.ids]));
     } catch (error) {

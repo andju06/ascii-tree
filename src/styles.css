@@ -48,6 +48,49 @@ body {
   cursor: grabbing;
 }
 
+.hud-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: #ffe14a;
+  background: rgba(11, 13, 19, 0.82);
+  border: 1px solid #d9a441;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.hud-icon svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.wand {
+  position: absolute;
+  top: 8px;
+  left: 12px;
+}
+
+.wand svg path:last-child {
+  fill: currentColor;
+  stroke: none;
+}
+
+.hud-icon:hover {
+  background: rgba(40, 20, 10, 0.9);
+}
+
+.hud-icon:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
 .hud-corner {
   position: absolute;
   top: 8px;

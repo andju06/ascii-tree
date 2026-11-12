@@ -224,11 +224,41 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
     syncGuestbook();
   });
 
+  let reloadToken = 0;
+  const rewindButton = requireElement<HTMLButtonElement>("gift-rewind");
+  rewindButton.addEventListener(
+    "click",
+    () => {
+      const token = ++reloadToken;
+      rewindButton.disabled = true;
+      hoverLabel.show(null);
+      giftLayer.setHovered(null);
+      canvas.style.cursor = "";
+      santa.reset();
+      giftRepository
+        .list()
+        .then((gifts) => {
+          if (token !== reloadToken) return;
+          giftLayer.rewind(gifts, clock.time);
+          syncGuestbook();
+        })
+        .catch((error: unknown) => {
+          console.warn("[gifts] failed to rewind", error);
+          if (token !== reloadToken) return;
+          giftLayer.replayWrapped(clock.time);
+          syncGuestbook();
+        })
+        .finally(() => {
+          if (token === reloadToken) rewindButton.disabled = false;
+        });
+    },
+    { signal: lifetime.signal },
+  );
+
   const listButton = requireElement<HTMLButtonElement>("gift-list");
   listButton.addEventListener("click", () => guestbook.open(), { signal: lifetime.signal });
 
   const refreshButton = requireElement<HTMLButtonElement>("gift-refresh");
-  let reloadToken = 0;
   refreshButton.addEventListener(
     "click",
     () => {

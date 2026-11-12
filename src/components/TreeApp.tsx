@@ -17,12 +17,23 @@ export function TreeApp() {
       <main className="app">
         <section className="viewport">
           <canvas id="scene" />
+          <button type="button" className="hud-icon wand" id="gift-rewind" aria-label="연 기록 지우기" title="연 기록 지우기">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 19 L14.5 9.5" />
+              <path d="M16.2 3.2 L17.3 6.4 L20.6 7.2 L17.3 8.1 L16.2 11.3 L15.1 8.1 L11.8 7.2 L15.1 6.4 Z" />
+            </svg>
+          </button>
           <div className="hud-corner">
             <div className="hud-time" id="hud-time">
               t 0.00s
             </div>
-            <button type="button" className="gift-refresh" id="gift-refresh">
-              새로고침
+            <button type="button" className="hud-icon" id="gift-refresh" aria-label="새로고침" title="새로고침">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4.5 12a7.5 7.5 0 0 1 12.6-5.5" />
+                <path d="M19.5 12a7.5 7.5 0 0 1-12.6 5.5" />
+                <path d="M16 3.2 V7.4 H20.2" />
+                <path d="M8 20.8 V16.6 H3.8" />
+              </svg>
             </button>
             <button type="button" className="gift-refresh" id="gift-list">
               방명록 한눈에 보기
