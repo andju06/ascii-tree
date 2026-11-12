@@ -14,11 +14,14 @@ export interface CameraView {
 }
 
 export class Camera implements CameraView, Updatable {
+  static readonly minZoom = 0.7;
+  static readonly maxZoom = 2.2;
+
   yaw = 0;
   pitch: number;
   readonly distance = 10;
   readonly target = 1.6;
-  readonly zoom = 1.1;
+  zoom = 1.1;
   readonly screenCenterY = 0.5;
 
   constructor(
@@ -40,5 +43,10 @@ export class Camera implements CameraView, Updatable {
   drag(dx: number, dy: number): void {
     this.yaw += dx * 0.008;
     this.pitch = clamp(this.pitch + dy * 0.003, 0.02, 0.6);
+  }
+
+  /** Changes how large the tree is drawn inside the fixed viewport. */
+  nudgeZoom(delta: number): void {
+    this.zoom = clamp(this.zoom + delta, Camera.minZoom, Camera.maxZoom);
   }
 }

@@ -23,6 +23,19 @@ export function TreeApp() {
               <path d="M16.2 3.2 L17.3 6.4 L20.6 7.2 L17.3 8.1 L16.2 11.3 L15.1 8.1 L11.8 7.2 L15.1 6.4 Z" />
             </svg>
           </button>
+          <div className="zoom-controls">
+            <button type="button" className="hud-icon" id="zoom-in" aria-label="트리 확대" title="트리 확대">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 5 V19" />
+                <path d="M5 12 H19" />
+              </svg>
+            </button>
+            <button type="button" className="hud-icon" id="zoom-out" aria-label="트리 축소" title="트리 축소">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M5 12 H19" />
+              </svg>
+            </button>
+          </div>
           <div className="hud-corner">
             <div className="hud-time" id="hud-time">
               t 0.00s

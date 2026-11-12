@@ -335,11 +335,23 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
     return hit ? giftLayer.giftAt(hit.index) : null;
   }
 
+  const ZOOM_STEP = 0.15;
+  const zoomIn = requireElement<HTMLButtonElement>("zoom-in");
+  const zoomOut = requireElement<HTMLButtonElement>("zoom-out");
+  const applyZoom = (delta: number): void => {
+    camera.nudgeZoom(delta);
+    zoomIn.disabled = camera.zoom >= Camera.maxZoom - 0.001;
+    zoomOut.disabled = camera.zoom <= Camera.minZoom + 0.001;
+  };
+  zoomIn.addEventListener("click", () => applyZoom(ZOOM_STEP), { signal: lifetime.signal });
+  zoomOut.addEventListener("click", () => applyZoom(-ZOOM_STEP), { signal: lifetime.signal });
+
   const unbindControls = bindControls(canvas, {
     togglePause: () => clock.togglePause(),
     skip: () => typer.skipToNextStage(),
     restart: () => bus.emit("reset", undefined),
     rotate: (dx, dy) => camera.drag(dx, dy),
+    zoom: (delta) => applyZoom(delta),
     hover: (x, y) => {
       const gift = giftUnder(x, y);
       const catching = snowman.catchable && sprites.contains(SNOWMAN_SPRITE, x, y, 36);

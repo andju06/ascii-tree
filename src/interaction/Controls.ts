@@ -3,6 +3,8 @@ export interface ControlActions {
   skip(): void;
   restart(): void;
   rotate(dx: number, dy: number): void;
+  /** Added to the camera zoom. Positive enlarges the tree. */
+  zoom(delta: number): void;
   /** Coordinates are CSS pixels relative to the drag target. */
   click(x: number, y: number): void;
   hover(x: number, y: number): void;
@@ -67,11 +69,17 @@ export function bindControls(dragTarget: HTMLElement, actions: ControlActions): 
     if (dragTarget.hasPointerCapture(event.pointerId)) dragTarget.releasePointerCapture(event.pointerId);
   };
 
+  const onWheel = (event: WheelEvent): void => {
+    event.preventDefault();
+    actions.zoom(-event.deltaY * 0.001);
+  };
+
   window.addEventListener("keydown", onKeyDown);
   dragTarget.addEventListener("pointerdown", onPointerDown);
   dragTarget.addEventListener("pointermove", onPointerMove);
   dragTarget.addEventListener("pointerup", onPointerUp);
   dragTarget.addEventListener("pointercancel", onPointerCancel);
+  dragTarget.addEventListener("wheel", onWheel, { passive: false });
 
   return () => {
     window.removeEventListener("keydown", onKeyDown);
@@ -79,5 +87,6 @@ export function bindControls(dragTarget: HTMLElement, actions: ControlActions): 
     dragTarget.removeEventListener("pointermove", onPointerMove);
     dragTarget.removeEventListener("pointerup", onPointerUp);
     dragTarget.removeEventListener("pointercancel", onPointerCancel);
+    dragTarget.removeEventListener("wheel", onWheel);
   };
 }

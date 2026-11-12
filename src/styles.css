@@ -82,6 +82,26 @@ body {
   stroke: none;
 }
 
+.zoom-controls {
+  position: absolute;
+  top: 44px;
+  left: 12px;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+}
+
+.zoom-controls .hud-icon {
+  color: #fff;
+  background: #0b0d13;
+  border: 1px solid #fff;
+  border-radius: 50%;
+}
+
+.zoom-controls .hud-icon:hover {
+  background: #1a1e29;
+}
+
 .hud-icon:hover {
   background: rgba(40, 20, 10, 0.9);
 }
