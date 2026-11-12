@@ -61,7 +61,7 @@ const DEFAULT_OPTIONS: GiftLayerOptions = {
   capacity: 120_000,
   density: 700,
   revealStagger: 0.06,
-  wobblePeriod: 4.5,
+  wobblePeriod: 2.8,
   wobbleDuration: 0.7,
   idleSparkleRate: 0.25,
 };

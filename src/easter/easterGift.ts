@@ -7,9 +7,13 @@ export const EASTER_GIFT: Gift = {
   message: "",
   shape: "box",
   color: "#e8394a",
-  size: 0.26,
+  size: 0.36,
   createdAt: "2026-12-25T00:00:00.000Z",
 };
+
+/** Tree marker for the unopened Santa box. Drawn with an emoji font, not the scene monospace. */
+export const SANTA_MARK = "🎅";
+export const SANTA_MARK_FONT = '"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
 
 export const SANTA_ESCAPED: Gift = {
   ...EASTER_GIFT,

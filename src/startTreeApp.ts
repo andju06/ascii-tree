@@ -7,7 +7,7 @@ import { EditorView } from "./editor/EditorView";
 import { TsHighlighter } from "./editor/SyntaxHighlighter";
 import { Typer } from "./editor/Typer";
 import { TREE_SOURCE } from "./editor/treeSource";
-import { EASTER_GIFT, SANTA_ESCAPED } from "./easter/easterGift";
+import { EASTER_GIFT, SANTA_ESCAPED, SANTA_MARK, SANTA_MARK_FONT } from "./easter/easterGift";
 import { SantaRunner } from "./easter/SantaRunner";
 import { EffectsSystem } from "./effects/EffectsSystem";
 import type { Gift } from "./gifts/Gift";
@@ -89,7 +89,7 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
 
   const effects = new EffectsSystem();
   const giftLayout = new GiftLayout(SEED, {
-    box: new BoxPilePlacer(),
+    box: new BoxPilePlacer({ goldRibbonIds: new Set([EASTER_GIFT.id]) }),
     ornament: new OrnamentPlacer(treeShape),
   });
   const giftLayer = new GiftLayer(giftLayout, new OpenedGifts(), effects, SEED);
@@ -165,7 +165,13 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
     lifetime.signal,
   );
 
-  const hint = new GiftHint(sprites, () => giftLayer.unopenedMarks());
+  const hint = new GiftHint(sprites, () =>
+    giftLayer.unopenedMarks().map((mark) =>
+      mark.id === EASTER_GIFT.id
+        ? { ...mark, glyph: SANTA_MARK, font: SANTA_MARK_FONT }
+        : { ...mark, glyph: "♥" },
+    ),
+  );
   const hoverLabel = new GiftHoverLabel(sprites, giftLayer, (gift) =>
     gift.id === EASTER_GIFT.id ? "From. ???" : `From. ${gift.author}`,
   );

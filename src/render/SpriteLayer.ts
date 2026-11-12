@@ -18,6 +18,8 @@ export interface Sprite {
   readonly glow?: boolean;
   /** Fill drawn behind the text block, for readable labels. */
   readonly background?: string;
+  /** Overrides the scene monospace font. Used for emoji marks. */
+  readonly font?: string;
 }
 
 export interface SpriteSink {
@@ -55,11 +57,12 @@ export class SpriteLayer implements Overlay, SpriteSink {
       if (!anchor) continue;
 
       const fontSize = Math.max(MIN_FONT_PX, viewport.fontSize * sprite.scale);
-      ctx.font = `bold ${fontSize}px ${viewport.fontFamily}`;
-      const charW = ctx.measureText("M").width;
+      const weight = sprite.font ? "" : "bold ";
+      ctx.font = `${weight}${fontSize}px ${sprite.font ?? viewport.fontFamily}`;
       const lineH = fontSize * 1.05;
-      const widest = Math.max(...sprite.lines.map((line) => line.length));
-      const left = anchor.x - (widest * charW) / 2;
+      const lineWidths = sprite.lines.map((line) => ctx.measureText(line).width);
+      const blockW = Math.max(...lineWidths);
+      const left = anchor.x - blockW / 2;
       const top = anchor.y - sprite.lines.length * lineH;
 
       const occluded = !sprite.background && this.isOccluded(frame, viewport, anchor.x, anchor.y - lineH, anchor.depth);
@@ -69,7 +72,7 @@ export class SpriteLayer implements Overlay, SpriteSink {
         const pad = fontSize * 0.4;
         ctx.shadowBlur = 0;
         ctx.fillStyle = sprite.background;
-        ctx.fillRect(left - pad, top - pad, widest * charW + pad * 2, sprite.lines.length * lineH + pad * 2);
+        ctx.fillRect(left - pad, top - pad, blockW + pad * 2, sprite.lines.length * lineH + pad * 2);
       }
       ctx.shadowBlur = sprite.glow ? fontSize * 0.8 : 0;
 

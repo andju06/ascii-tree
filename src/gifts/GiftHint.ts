@@ -9,6 +9,8 @@ export interface GiftLocator {
 export interface UnreadMark {
   readonly id: string;
   readonly top: Point3;
+  readonly glyph: string;
+  readonly font?: string;
 }
 
 const MARK_COLOR = "#ffe14a";
@@ -39,14 +41,15 @@ export class GiftHint implements Updatable, Resettable {
     for (const mark of this.marks()) {
       next.add(mark.id);
       this.sprites.set(this.spriteId(mark.id), {
-        lines: ["♥"],
-        colors: [MARK_COLOR],
+        lines: [mark.glyph],
+        colors: [mark.font ? "#ffffff" : MARK_COLOR],
         x: mark.top.x,
         y: mark.top.y + 0.42 + bob,
         z: mark.top.z,
-        scale: 3.2,
+        scale: mark.font ? 4 : 3.2,
         alpha: 1,
-        glow: true,
+        glow: !mark.font,
+        font: mark.font,
         background: "rgba(48, 22, 4, 0.92)",
       });
     }

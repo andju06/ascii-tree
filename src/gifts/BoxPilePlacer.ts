@@ -14,6 +14,8 @@ export interface BoxPileOptions {
   readonly attempts: number;
   readonly riseDepth: number;
   readonly fallHeight: number;
+  /** Gifts that always get a gold ribbon, such as the Santa box. */
+  readonly goldRibbonIds?: ReadonlySet<string>;
 }
 
 const DEFAULT_OPTIONS: BoxPileOptions = {
@@ -69,7 +71,13 @@ export class BoxPilePlacer implements GiftPlacer {
       yaw,
       footprint,
       body,
-      accent: luminance(body) > 0.6 ? RIBBON_RED : rng.random() < 0.5 ? RIBBON_GOLD : RIBBON_WHITE,
+      accent: this.options.goldRibbonIds?.has(gift.id)
+        ? RIBBON_GOLD
+        : luminance(body) > 0.6
+          ? RIBBON_RED
+          : rng.random() < 0.5
+            ? RIBBON_GOLD
+            : RIBBON_WHITE,
       riseDepth,
       fallHeight,
     };
