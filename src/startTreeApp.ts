@@ -46,6 +46,7 @@ import { StarBuilder } from "./scene/builders/StarBuilder";
 import { TrunkBuilder } from "./scene/builders/TrunkBuilder";
 import { GiftComposer } from "./ui/GiftComposer";
 import { GiftPopup } from "./ui/GiftPopup";
+import { GuestbookList } from "./ui/GuestbookList";
 
 const SEED = 20261225;
 const FONT_FAMILY = '"JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, monospace';
@@ -134,6 +135,8 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
     lifetime.signal,
   );
 
+  let syncGuestbook = (): void => {};
+
   const composer = new GiftComposer(
     {
       trigger: requireElement<HTMLButtonElement>("gift-button"),
@@ -156,6 +159,7 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
       const gift = await giftRepository.create(input);
       cooldown.mark();
       giftLayer.addGifts([gift], clock.time, "fall");
+      syncGuestbook();
     },
     () => randomGiftStyle(),
     lifetime.signal,
@@ -190,11 +194,32 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
   });
 
   giftLayer.addGifts([EASTER_GIFT], clock.time, "rise", { pinned: true, wobble: true });
+  const guestbook = new GuestbookList(
+    {
+      root: requireElement("guestbook"),
+      list: requireElement("guestbook-list"),
+      empty: requireElement("guestbook-empty"),
+    },
+    lifetime.signal,
+    () => giftLayer.guestbook(),
+    (id) => giftLayer.acknowledge(id),
+  );
+  syncGuestbook = () => guestbook.render();
+
   giftRepository
     .list()
-    .then((gifts) => giftLayer.addGifts(gifts, clock.time, "rise"))
+    .then((gifts) => {
+      giftLayer.addGifts(gifts, clock.time, "rise");
+      syncGuestbook();
+    })
     .catch((error: unknown) => console.warn("[gifts] failed to load", error));
-  const unsubscribeGifts = giftRepository.subscribe((gifts) => giftLayer.addGifts(gifts, clock.time, "fall"));
+  const unsubscribeGifts = giftRepository.subscribe((gifts) => {
+    giftLayer.addGifts(gifts, clock.time, "fall");
+    syncGuestbook();
+  });
+
+  const listButton = requireElement<HTMLButtonElement>("gift-list");
+  listButton.addEventListener("click", () => guestbook.open(), { signal: lifetime.signal });
 
   const refreshButton = requireElement<HTMLButtonElement>("gift-refresh");
   let reloadToken = 0;
@@ -211,6 +236,7 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
           giftLayer.setHovered(null);
           canvas.style.cursor = "";
           giftLayer.reload(gifts, clock.time);
+          syncGuestbook();
         })
         .catch((error: unknown) => console.warn("[gifts] failed to reload", error))
         .finally(() => {

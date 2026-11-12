@@ -110,6 +110,22 @@ export class GiftLayer implements Updatable, Resettable {
     this.hoveredId = id;
   }
 
+  /** Visitor entries, newest first. Pinned gifts such as the easter egg are omitted. */
+  guestbook(): { gift: Gift; opened: boolean }[] {
+    return this.entries
+      .filter((entry) => !entry.traits.pinned)
+      .map((entry) => ({ gift: entry.placed.gift, opened: this.opened.has(entry.placed.gift.id) }))
+      .sort((a, b) => b.gift.createdAt.localeCompare(a.gift.createdAt));
+  }
+
+  /** Marks a guestbook entry read without playing the unwrap burst. */
+  acknowledge(id: string): void {
+    const entry = this.findEntry(id);
+    if (!entry || entry.traits.pinned || this.opened.has(id)) return;
+    this.opened.add(id);
+    this.rebuild();
+  }
+
   /** Tops of guestbook entries this browser has not opened. Empty before the tree is revealed. */
   unopenedMarks(): { id: string; top: Point3 }[] {
     if (this.revealTime === null) return [];

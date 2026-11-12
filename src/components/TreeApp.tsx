@@ -24,6 +24,9 @@ export function TreeApp() {
             <button type="button" className="gift-refresh" id="gift-refresh">
               새로고침
             </button>
+            <button type="button" className="gift-refresh" id="gift-list">
+              방명록 한눈에 보기
+            </button>
           </div>
           <div className="hud-info">
             <div>@daisy · 2026</div>
@@ -106,6 +109,21 @@ export function TreeApp() {
             </button>
           </div>
         </form>
+      </div>
+
+      <div className="modal" id="guestbook" hidden>
+        <section className="card guestbook">
+          <header className="guestbook-header">
+            <h2 className="card-title">방명록</h2>
+            <button type="button" className="btn ghost small" data-close>
+              닫기
+            </button>
+          </header>
+          <p className="guestbook-empty" id="guestbook-empty" hidden>
+            아직 남긴 글이 없습니다.
+          </p>
+          <ul className="guestbook-list" id="guestbook-list" />
+        </section>
       </div>
 
       <div className="modal" id="gift-popup" hidden>
