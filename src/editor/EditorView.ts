@@ -17,7 +17,9 @@ export class EditorView {
   constructor(
     private readonly container: HTMLElement,
     private readonly highlighter: Highlighter,
-  ) {}
+  ) {
+    container.replaceChildren();
+  }
 
   render(source: TypingSource): void {
     if (source.cursor < this.renderedCursor) this.clear();

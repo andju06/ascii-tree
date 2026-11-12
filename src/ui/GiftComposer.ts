@@ -37,29 +37,44 @@ export class GiftComposer {
     private readonly elements: GiftComposerElements,
     private readonly onSubmit: GiftSubmitHandler,
     private readonly rollStyle: () => GiftStyle,
+    signal: AbortSignal,
   ) {
-    this.modal = new Modal(elements.root);
+    this.modal = new Modal(elements.root, signal);
     ({ color: this.color, size: this.size } = rollStyle());
     elements.author.maxLength = GIFT_LIMITS.authorMax;
     elements.message.maxLength = GIFT_LIMITS.messageMax;
     this.renderPalette();
 
-    elements.trigger.addEventListener("click", () => this.open());
-    elements.message.addEventListener("input", () => this.updateCounter());
-    elements.shapes.addEventListener("change", (event) => {
-      const value = (event.target as HTMLInputElement).value;
-      if (isGiftShape(value)) this.shape = value;
-      this.updatePreview();
-    });
-    elements.palette.addEventListener("change", (event) => {
-      this.color = (event.target as HTMLInputElement).value;
-      this.updatePreview();
-    });
-    elements.randomColor.addEventListener("click", () => this.selectColor(this.rollStyle().color));
-    elements.form.addEventListener("submit", (event) => {
-      event.preventDefault();
-      void this.submit();
-    });
+    const options = { signal };
+    elements.trigger.addEventListener("click", () => this.open(), options);
+    elements.message.addEventListener("input", () => this.updateCounter(), options);
+    elements.shapes.addEventListener(
+      "change",
+      (event) => {
+        const value = (event.target as HTMLInputElement).value;
+        if (isGiftShape(value)) this.shape = value;
+        this.updatePreview();
+      },
+      options,
+    );
+    elements.palette.addEventListener(
+      "change",
+      (event) => {
+        this.color = (event.target as HTMLInputElement).value;
+        this.updatePreview();
+      },
+      options,
+    );
+    elements.randomColor.addEventListener("click", () => this.selectColor(this.rollStyle().color), options);
+    elements.form.addEventListener(
+      "submit",
+      (event) => {
+        event.preventDefault();
+        void this.submit();
+      },
+      options,
+    );
+    signal.addEventListener("abort", () => (elements.trigger.hidden = true), { once: true });
   }
 
   setAvailable(available: boolean): void {

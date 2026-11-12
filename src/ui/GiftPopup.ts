@@ -14,8 +14,11 @@ const dateFormat = new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeS
 export class GiftPopup {
   private readonly modal: Modal;
 
-  constructor(private readonly elements: GiftPopupElements) {
-    this.modal = new Modal(elements.root);
+  constructor(
+    private readonly elements: GiftPopupElements,
+    signal: AbortSignal,
+  ) {
+    this.modal = new Modal(elements.root, signal);
   }
 
   show(gift: Gift): void {

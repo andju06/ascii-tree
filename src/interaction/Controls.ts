@@ -33,8 +33,7 @@ export function bindControls(dragTarget: HTMLElement, actions: ControlActions): 
         break;
       case "KeyR":
         actions.restart();
-        break;
-    }
+        break;    }
   };
 
   let dragging = false;
