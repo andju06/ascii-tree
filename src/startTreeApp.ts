@@ -196,6 +196,30 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
     .catch((error: unknown) => console.warn("[gifts] failed to load", error));
   const unsubscribeGifts = giftRepository.subscribe((gifts) => giftLayer.addGifts(gifts, clock.time, "fall"));
 
+  const refreshButton = requireElement<HTMLButtonElement>("gift-refresh");
+  let reloadToken = 0;
+  refreshButton.addEventListener(
+    "click",
+    () => {
+      const token = ++reloadToken;
+      refreshButton.disabled = true;
+      giftRepository
+        .list()
+        .then((gifts) => {
+          if (token !== reloadToken) return;
+          hoverLabel.show(null);
+          giftLayer.setHovered(null);
+          canvas.style.cursor = "";
+          giftLayer.reload(gifts, clock.time);
+        })
+        .catch((error: unknown) => console.warn("[gifts] failed to reload", error))
+        .finally(() => {
+          if (token === reloadToken) refreshButton.disabled = false;
+        });
+    },
+    { signal: lifetime.signal },
+  );
+
   /** Reaction when a gift is clicked; `unwrapped` is true only on the first open in this browser. */
   type GiftOpener = (gift: Gift, unwrapped: boolean) => void;
 

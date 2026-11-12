@@ -17,9 +17,15 @@ export function TreeApp() {
       <main className="app">
         <section className="viewport">
           <canvas id="scene" />
-          <div className="hud-time" id="hud-time">
-            t 0.00s
-          </div>          <div className="hud-info">
+          <div className="hud-corner">
+            <div className="hud-time" id="hud-time">
+              t 0.00s
+            </div>
+            <button type="button" className="gift-refresh" id="gift-refresh">
+              새로고침
+            </button>
+          </div>
+          <div className="hud-info">
             <div>@daisy · 2026</div>
             <div>
               rotation <span id="hud-rotation">0.00°</span>

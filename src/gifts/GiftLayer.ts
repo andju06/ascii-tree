@@ -144,6 +144,41 @@ export class GiftLayer implements Updatable, Resettable {
     else this.rebuild();
   }
 
+  /**
+   * Replaces visitor gifts with a fresh list and replays their entrance.
+   * Pinned gifts stay in place. Before the tree is revealed, new gifts stay hidden.
+   */
+  reload(gifts: readonly Gift[], time: number): void {
+    const pinned = this.entries.filter((entry) => entry.traits.pinned);
+    this.layout.clear();
+    this.ids.clear();
+    this.entries = pinned.map((entry) => {
+      this.ids.add(entry.placed.gift.id);
+      return { ...entry, placed: this.layout.place(entry.placed.gift), rest: null, posed: false };
+    });
+    if (this.hoveredId && !this.ids.has(this.hoveredId)) this.hoveredId = null;
+
+    const fresh = gifts.filter((gift) => !this.ids.has(gift.id));
+    fresh.forEach((gift, index) => {
+      this.ids.add(gift.id);
+      const entry: GiftEntry = {
+        placed: this.layout.place(gift),
+        traits: DEFAULT_TRAITS,
+        appear: Infinity,
+        drop: 0,
+        start: 0,
+        end: 0,
+        rest: null,
+        posed: false,
+      };
+      this.entries.push(entry);
+      if (this.revealTime !== null) this.scheduleRise(entry, time + index * this.options.revealStagger);
+    });
+
+    if (this.entries.length > this.options.maxGifts) this.trimOldest();
+    else this.rebuild();
+  }
+
   reveal(time: number): void {
     if (this.revealTime !== null) return;
     this.revealTime = time;

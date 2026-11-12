@@ -26,6 +26,8 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .viewport {
@@ -46,13 +48,39 @@ body {
   cursor: grabbing;
 }
 
-.hud-time {
+.hud-corner {
   position: absolute;
   top: 8px;
   right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hud-time {
   font-size: 11px;
   color: var(--accent);
   pointer-events: none;
+}
+
+.gift-refresh {
+  padding: 2px 8px;
+  font: inherit;
+  font-size: 11px;
+  color: var(--text);
+  background: rgba(11, 13, 19, 0.82);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.gift-refresh:hover {
+  border-color: var(--muted);
+}
+
+.gift-refresh:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 .hud-info {
