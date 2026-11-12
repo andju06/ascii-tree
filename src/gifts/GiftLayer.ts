@@ -110,11 +110,17 @@ export class GiftLayer implements Updatable, Resettable {
     this.hoveredId = id;
   }
 
-  /** A wrapped, regular gift to point the "click me" hint at. */
-  hintTarget(): Gift | null {
-    const wrapped = this.entries.filter((entry) => !this.opened.has(entry.placed.gift.id));
-    const regular = wrapped.find((entry) => !entry.traits.pinned) ?? wrapped[0];
-    return regular ? regular.placed.gift : null;
+  /** Tops of guestbook entries this browser has not opened. Empty before the tree is revealed. */
+  unopenedMarks(): { id: string; top: Point3 }[] {
+    if (this.revealTime === null) return [];
+    const marks: { id: string; top: Point3 }[] = [];
+    for (const entry of this.entries) {
+      const id = entry.placed.gift.id;
+      if (this.opened.has(id) || id === this.hoveredId) continue;
+      const { placed } = entry;
+      marks.push({ id, top: { x: placed.x, y: placed.y + placed.height, z: placed.z } });
+    }
+    return marks;
   }
 
   /** Adds gifts not yet known. Before reveal they stay hidden; afterwards they rise (initial) or fall (new). */

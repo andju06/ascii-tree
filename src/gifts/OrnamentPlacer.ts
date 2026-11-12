@@ -20,10 +20,10 @@ export interface OrnamentOptions {
 }
 
 const DEFAULT_OPTIONS: OrnamentOptions = {
-  sizeScale: 1.2,
+  sizeScale: 1.55,
   minHeight: 0.08,
   maxHeight: 0.78,
-  standoff: 0.55,
+  standoff: 1.1,
   attempts: 12,
   riseDepth: 0.35,
   fallHeight: 2.5,

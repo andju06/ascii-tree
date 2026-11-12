@@ -1,66 +1,72 @@
 import type { Resettable, Updatable } from "../core/types";
 import type { Point3 } from "../effects/emitters";
 import type { SpriteSink } from "../render/SpriteLayer";
-import type { Gift } from "./Gift";
 
 export interface GiftLocator {
-  hintTarget(): Gift | null;
   topOf(id: string): Point3 | null;
 }
 
-const SPRITE_ID = "gift-hint";
+export interface UnreadMark {
+  readonly id: string;
+  readonly top: Point3;
+}
 
-/** Bobbing "click me!" bubble over one wrapped gift, shown once after the pile appears. */
+const MARK_COLOR = "#ffe14a";
+
+/** A glowing mark above every guestbook entry this browser has not opened yet. */
 export class GiftHint implements Updatable, Resettable {
-  private showAt: number | null = null;
-  private targetId: string | null = null;
+  private active = false;
+  private readonly shown = new Set<string>();
 
   constructor(
     private readonly sprites: SpriteSink,
-    private readonly locator: GiftLocator,
-    private readonly duration = 5,
+    private readonly marks: () => readonly UnreadMark[],
   ) {}
 
-  schedule(time: number): void {
-    this.showAt = time;
-    this.targetId = null;
+  schedule(_time: number): void {
+    this.active = true;
   }
 
   dismiss(): void {
-    this.showAt = null;
-    this.targetId = null;
-    this.sprites.remove(SPRITE_ID);
+    this.active = false;
+    this.clear();
   }
 
   update(_dt: number, time: number): void {
-    if (this.showAt === null || time < this.showAt) return;
-    const elapsed = time - this.showAt;
-    if (elapsed > this.duration) {
-      this.dismiss();
-      return;
+    if (!this.active) return;
+    const bob = Math.abs(Math.sin(time * 4)) * 0.1;
+    const next = new Set<string>();
+    for (const mark of this.marks()) {
+      next.add(mark.id);
+      this.sprites.set(this.spriteId(mark.id), {
+        lines: ["♥"],
+        colors: [MARK_COLOR],
+        x: mark.top.x,
+        y: mark.top.y + 0.42 + bob,
+        z: mark.top.z,
+        scale: 3.2,
+        alpha: 1,
+        glow: true,
+        background: "rgba(48, 22, 4, 0.92)",
+      });
     }
-
-    this.targetId ??= this.locator.hintTarget()?.id ?? null;
-    const top = this.targetId ? this.locator.topOf(this.targetId) : null;
-    if (!top) {
-      this.dismiss();
-      return;
+    for (const id of this.shown) {
+      if (!next.has(id)) this.sprites.remove(this.spriteId(id));
     }
-
-    const fade = Math.min(1, elapsed / 0.3, (this.duration - elapsed) / 0.5);
-    this.sprites.set(SPRITE_ID, {
-      lines: ["click me!", "    v    "],
-      colors: ["#ffe9a8"],
-      x: top.x,
-      y: top.y + 0.25 + Math.abs(Math.sin(elapsed * 4)) * 0.08,
-      z: top.z,
-      scale: 1.6,
-      alpha: fade,
-      background: "rgba(10, 8, 4, 0.82)",
-    });
+    this.shown.clear();
+    for (const id of next) this.shown.add(id);
   }
 
   reset(): void {
     this.dismiss();
+  }
+
+  private spriteId(id: string): string {
+    return `unread:${id}`;
+  }
+
+  private clear(): void {
+    for (const id of this.shown) this.sprites.remove(this.spriteId(id));
+    this.shown.clear();
   }
 }

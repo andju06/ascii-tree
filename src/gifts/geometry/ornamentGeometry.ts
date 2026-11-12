@@ -25,14 +25,15 @@ export const paintOrnament: ShapePainter = (painter) => {
     const facing = ux * HIGHLIGHT.x + uy * HIGHLIGHT.y + uz * HIGHLIGHT.z;
     const point = [ux * radius, radius + uy * radius, uz * radius] as const;
 
-    if (!options.opened && facing > 0.9) painter.point(point, Kind.Bow, SHINE, 1);
-    else if (facing < -0.55) painter.point(point, Kind.Gift, rim, 0.75 * dim);
-    else painter.point(point, Kind.Gift, gift.body, (0.7 + 0.3 * facing) * dim);
+    if (!options.opened && facing > 0.82) painter.point(point, Kind.Bow, SHINE, 1);
+    else if (facing < -0.55) painter.point(point, Kind.Gift, rim, 0.85 * dim);
+    else painter.point(point, Kind.Gift, gift.body, (0.85 + 0.15 * facing) * dim);
   }
 
   const capRadius = radius * 0.32;
   const capHeight = radius * 0.28;
-  for (let k = 0; k < 40; k++) {
+  const capCount = Math.max(48, Math.round(260 * radius));
+  for (let k = 0; k < capCount; k++) {
     const a = rng.random() * TAU;
     painter.point(
       [capRadius * Math.cos(a), radius * 1.92 + rng.random() * capHeight, capRadius * Math.sin(a)],
@@ -43,8 +44,9 @@ export const paintOrnament: ShapePainter = (painter) => {
   }
 
   const loopRadius = capRadius * 0.8;
-  for (let k = 0; k < 18; k++) {
-    const t = (k / 18) * Math.PI;
+  const loopCount = Math.max(18, Math.round(90 * radius));
+  for (let k = 0; k < loopCount; k++) {
+    const t = (k / loopCount) * Math.PI;
     painter.point(
       [loopRadius * Math.cos(t), radius * 1.92 + capHeight + loopRadius * Math.sin(t), 0],
       Kind.Bow,

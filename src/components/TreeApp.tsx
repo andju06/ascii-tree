@@ -41,7 +41,7 @@ export function TreeApp() {
             </div>
           </div>
           <button type="button" className="gift-button" id="gift-button" hidden>
-            선물 남기기
+            방명록 남기기
           </button>
         </section>
         <section className="editor">
@@ -58,7 +58,7 @@ export function TreeApp() {
 
       <div className="modal" id="gift-compose" hidden>
         <form className="card" id="gift-form" noValidate>
-          <h2 className="card-title">선물 남기기</h2>
+          <h2 className="card-title">방명록 남기기</h2>
           <label className="field">
             <span>닉네임</span>
             <input id="gift-author" name="author" autoComplete="nickname" required />
@@ -102,7 +102,7 @@ export function TreeApp() {
               취소
             </button>
             <button type="submit" className="btn primary" id="gift-submit">
-              선물하기
+              남기기
             </button>
           </div>
         </form>

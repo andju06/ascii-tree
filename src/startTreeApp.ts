@@ -161,7 +161,7 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
     lifetime.signal,
   );
 
-  const hint = new GiftHint(sprites, giftLayer);
+  const hint = new GiftHint(sprites, () => giftLayer.unopenedMarks());
   const hoverLabel = new GiftHoverLabel(sprites, giftLayer, (gift) =>
     gift.id === EASTER_GIFT.id ? "From. ???" : `From. ${gift.author}`,
   );
@@ -255,7 +255,6 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
     click: (x, y) => {
       const gift = giftUnder(x, y);
       if (!gift) return;
-      hint.dismiss();
       hoverLabel.show(null);
       giftLayer.setHovered(null);
       const unwrapped = giftLayer.open(gift.id, clock.time);
