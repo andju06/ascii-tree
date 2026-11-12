@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ASCII Christmas Tree</title>
+  </head>
+  <body>
+    <main class="app">
+      <section class="viewport">
+        <canvas id="scene"></canvas>
+        <div class="hud-time" id="hud-time">t 0.00s</div>
+        <div class="hud-info">
+          <div>@daisy · 2026</div>
+          <div>
+            rotation <span id="hud-rotation">0.00°</span>
+            <span class="hud-gap">lights <span id="hud-lights">0/0</span></span>
+          </div>
+          <div>
+            letters <span id="hud-letters">0</span>
+            <span class="hud-gap">gifts <span id="hud-gifts">0</span></span>
+          </div>
+        </div>
+        <button type="button" class="gift-button" id="gift-button" hidden>선물 남기기</button>
+      </section>
+      <section class="editor">
+        <header class="editor-bar">
+          <span class="editor-file">tree.ts</span>
+          <span class="editor-hint">space pause · → skip · r restart · drag rotate · click gift</span>
+          <span class="editor-status" id="hud-status">running · 0 fps</span>
+        </header>
+        <div class="editor-body" id="editor"></div>
+      </section>
+    </main>
+
+    <div class="modal" id="gift-compose" hidden>
+      <form class="card" id="gift-form" novalidate>
+        <h2 class="card-title">선물 남기기</h2>
+        <label class="field">
+          <span>닉네임</span>
+          <input id="gift-author" name="author" autocomplete="nickname" required />
+        </label>
+        <label class="field">
+          <span>메시지</span>
+          <textarea id="gift-message" name="message" rows="4" required></textarea>
+        </label>
+        <fieldset class="field choice">
+          <legend>모양</legend>
+          <div class="segmented" id="gift-shapes">
+            <label><input type="radio" name="gift-shape" value="box" checked /><span>선물상자</span></label>
+            <label><input type="radio" name="gift-shape" value="ornament" /><span>오너먼트</span></label>
+          </div>
+        </fieldset>
+        <fieldset class="field choice">
+          <legend>색상</legend>
+          <div class="palette-row">
+            <div class="palette" id="gift-palette"></div>
+            <button type="button" class="btn ghost small" id="gift-random-color">랜덤</button>
+          </div>
+        </fieldset>
+        <div class="field-row">
+          <span class="gift-preview"><span class="swatch" id="gift-swatch"></span><span id="gift-size"></span></span>
+          <span id="gift-counter">0/200</span>
+        </div>
+        <p class="error" id="gift-error" role="alert"></p>
+        <div class="actions">
+          <button type="button" class="btn ghost" data-close>취소</button>
+          <button type="submit" class="btn primary" id="gift-submit">선물하기</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="modal" id="gift-popup" hidden>
+      <article class="card popup">
+        <header class="popup-header">
+          <span class="swatch" id="popup-swatch"></span>
+          <span>From. <strong id="popup-author"></strong></span>
+        </header>
+        <p class="popup-message" id="popup-message"></p>
+        <time class="popup-date" id="popup-date"></time>
+        <div class="actions">
+          <button type="button" class="btn primary" data-close>닫기</button>
+        </div>
+      </article>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

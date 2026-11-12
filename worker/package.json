@@ -1,0 +1,19 @@
+{
+  "name": "ascii-tree-gifts-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:init:local": "wrangler d1 execute ascii-tree-gifts --local --file=schema.sql",
+    "db:init:remote": "wrangler d1 execute ascii-tree-gifts --remote --file=schema.sql",
+    "db:migrate:shape:local": "wrangler d1 execute ascii-tree-gifts --local --file=migrations/0002_add_shape.sql",
+    "db:migrate:shape:remote": "wrangler d1 execute ascii-tree-gifts --remote --file=migrations/0002_add_shape.sql",
+    "typecheck": "tsc"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261112.1",
+    "typescript": "^7.0.2",
+    "wrangler": "^4.160.1"
+  }
+}
