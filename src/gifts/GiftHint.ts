@@ -1,6 +1,7 @@
 import type { Resettable, Updatable } from "../core/types";
 import type { Point3 } from "../effects/emitters";
 import type { SpriteSink } from "../render/SpriteLayer";
+import { KIND_STYLES, Kind } from "../scene/kinds";
 
 export interface GiftLocator {
   topOf(id: string): Point3 | null;
@@ -11,6 +12,10 @@ export interface UnreadMark {
   readonly top: Point3;
   readonly glyph: string;
   readonly font?: string;
+  /** When the gift itself becomes visible. The mark stays hidden until then. */
+  readonly appear: number;
+  /** Same entrance offset as the gift particles, so the mark rises and falls with it. */
+  readonly drop: number;
 }
 
 const MARK_COLOR = "#ffe14a";
@@ -37,14 +42,18 @@ export class GiftHint implements Updatable, Resettable {
   update(_dt: number, time: number): void {
     if (!this.active) return;
     const bob = Math.abs(Math.sin(time * 4)) * 0.1;
+    const fadeIn = KIND_STYLES[Kind.Gift].fadeIn;
     const next = new Set<string>();
     for (const mark of this.marks()) {
+      const age = time - mark.appear;
+      if (age < 0) continue;
+      const settle = age >= fadeIn ? 0 : 1 - age / fadeIn;
       next.add(mark.id);
       this.sprites.set(this.spriteId(mark.id), {
         lines: [mark.glyph],
         colors: [mark.font ? "#ffffff" : MARK_COLOR],
         x: mark.top.x,
-        y: mark.top.y + 0.42 + bob,
+        y: mark.top.y + settle * settle * mark.drop + 0.42 + bob,
         z: mark.top.z,
         scale: mark.font ? 4 : 3.2,
         alpha: 1,

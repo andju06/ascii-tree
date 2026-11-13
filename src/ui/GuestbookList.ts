@@ -137,12 +137,19 @@ export class GuestbookList {
     item.className = "guestbook-entry";
     const card = document.createElement("div");
     card.className = "guestbook-card";
-    card.append(this.giftButton(entry), this.thread(entry.gift.id, replies));
+    const head = document.createElement("div");
+    head.className = "guestbook-head";
+    head.append(this.giftButton(entry));
+    const action = this.replyAction(entry.gift.id, replies);
+    if (action) head.append(action);
+    const thread = this.thread(entry.gift.id, replies);
+    card.append(head);
+    if (thread.childElementCount > 0) card.append(thread);
     item.append(card);
     return item;
   }
 
-  private giftButton({ gift, opened }: GuestbookEntry): HTMLButtonElement {
+  private giftButton({ gift }: GuestbookEntry): HTMLButtonElement {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "guestbook-item";
@@ -163,12 +170,6 @@ export class GuestbookList {
     time.dateTime = gift.createdAt;
     time.textContent = dateFormat.format(new Date(gift.createdAt));
     meta.append(author, time);
-    if (!opened) {
-      const heart = document.createElement("span");
-      heart.className = "guestbook-heart";
-      heart.textContent = "♥";
-      meta.append(heart);
-    }
 
     const message = document.createElement("span");
     message.className = "guestbook-message";
@@ -179,25 +180,27 @@ export class GuestbookList {
     return button;
   }
 
-  private thread(parentId: string, replies: readonly Reply[]): HTMLDivElement {
-    const thread = document.createElement("div");
-    thread.className = "guestbook-thread";
+  private replyAction(parentId: string, replies: readonly Reply[]): HTMLElement | null {
     const mine = replies.filter((reply) => reply.parentId === parentId);
-
     if (mine.length >= REPLY_LIMITS.perParent) {
       const full = document.createElement("p");
       full.className = "reply-full";
       full.textContent = "답글이 가득 찼습니다.";
-      thread.append(full);
-    } else {
-      const toggle = document.createElement("button");
-      toggle.type = "button";
-      toggle.className = "reply-toggle";
-      toggle.dataset.replyToggle = parentId;
-      toggle.textContent = "답글";
-      thread.append(toggle);
-      if (this.draftParent === parentId) thread.append(this.form());
+      return full;
     }
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "reply-toggle";
+    toggle.dataset.replyToggle = parentId;
+    toggle.textContent = "답글";
+    return toggle;
+  }
+
+  private thread(parentId: string, replies: readonly Reply[]): HTMLDivElement {
+    const thread = document.createElement("div");
+    thread.className = "guestbook-thread";
+    const mine = replies.filter((reply) => reply.parentId === parentId);
+    if (mine.length < REPLY_LIMITS.perParent && this.draftParent === parentId) thread.append(this.form());
 
     if (mine.length > 0) {
       const list = document.createElement("ul");
@@ -224,12 +227,6 @@ export class GuestbookList {
     time.dateTime = reply.createdAt;
     time.textContent = dateFormat.format(new Date(reply.createdAt));
     meta.append(author, time);
-    if (!this.actions.isReplyRead(reply.id)) {
-      const dot = document.createElement("span");
-      dot.className = "reply-dot";
-      dot.setAttribute("aria-label", "새 답글");
-      meta.append(dot);
-    }
 
     const message = document.createElement("span");
     message.className = "guestbook-message";

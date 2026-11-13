@@ -148,14 +148,19 @@ export class GiftLayer implements Updatable, Resettable {
   }
 
   /** Tops of guestbook entries this browser has not opened. Empty before the tree is revealed. */
-  unopenedMarks(): { id: string; top: Point3 }[] {
+  unopenedMarks(): { id: string; top: Point3; appear: number; drop: number }[] {
     if (this.revealTime === null) return [];
-    const marks: { id: string; top: Point3 }[] = [];
+    const marks: { id: string; top: Point3; appear: number; drop: number }[] = [];
     for (const entry of this.entries) {
       const id = entry.placed.gift.id;
       if (this.opened.has(id) || id === this.hoveredId) continue;
       const { placed } = entry;
-      marks.push({ id, top: { x: placed.x, y: placed.y + placed.height, z: placed.z } });
+      marks.push({
+        id,
+        top: { x: placed.x, y: placed.y + placed.height, z: placed.z },
+        appear: entry.appear,
+        drop: entry.drop,
+      });
     }
     return marks;
   }

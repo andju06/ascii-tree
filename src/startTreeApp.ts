@@ -4,6 +4,7 @@ import { Random } from "./core/Random";
 import type { AppEvents, Updatable } from "./core/types";
 import { CodeScript } from "./editor/CodeScript";
 import { EditorView } from "./editor/EditorView";
+import { GuestbookPrint } from "./editor/GuestbookPrint";
 import { TsHighlighter } from "./editor/SyntaxHighlighter";
 import { Typer } from "./editor/Typer";
 import { TREE_SOURCE } from "./editor/treeSource";
@@ -37,6 +38,7 @@ import type { Viewport } from "./render/Viewport";
 import type { ParticleSource } from "./scene/ParticleSource";
 import { GrowthWave } from "./scene/GrowthWave";
 import { ParticleStore } from "./scene/ParticleStore";
+import { ChristmasParade } from "./scene/ChristmasParade";
 import { Scene } from "./scene/Scene";
 import { ConeShape } from "./scene/TreeShape";
 import { BranchBuilder } from "./scene/builders/BranchBuilder";
@@ -115,6 +117,7 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
   ]);
   const santa = new SantaRunner(sprites, effects);
   const snowman = new SnowmanChase(sprites, effects);
+  const parade = new ChristmasParade(sprites, camera);
   const picker = new Picker();
 
   const typer = new Typer(new CodeScript(TREE_SOURCE), bus, Random.derive(SEED, "typer"), {
@@ -122,7 +125,15 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
     linePause: 0.03,
     startDelay: 0.2,
   });
-  const editor = new EditorView(requireElement("editor"), new TsHighlighter());
+  const editorRoot = requireElement("editor");
+  const highlighter = new TsHighlighter();
+  const editor = new EditorView(editorRoot, highlighter);
+  const guestbookPrintRoot = document.createElement("div");
+  guestbookPrintRoot.className = "editor-guestbook";
+  guestbookPrintRoot.dataset.keep = "";
+  guestbookPrintRoot.hidden = true;
+  editorRoot.append(guestbookPrintRoot);
+  const guestbookPrint = new GuestbookPrint(guestbookPrintRoot, highlighter);
   const hud = new HudView({
     time: requireElement("hud-time"),
     rotation: requireElement("hud-rotation"),
@@ -184,13 +195,18 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
 
   let completed = false;
   let lastFrame: { fb: FrameBuffer; viewport: Viewport } | null = null;
+  const skipDraw = requireElement<HTMLButtonElement>("skip-draw");
+  skipDraw.addEventListener("click", () => typer.finish(), { signal: lifetime.signal });
 
   bus.on("stage", (stage) => scene.activate(stage, clock.time));
   bus.on("complete", () => {
     completed = true;
+    skipDraw.hidden = true;
     giftLayer.reveal(clock.time);
+    parade.start();
     hint.schedule(clock.time + 1.5 + giftLayer.count * 0.06);
     composer.setAvailable(true);
+    syncGuestbook();
   });
   bus.on("reset", () => {
     clock.reset();
@@ -199,11 +215,14 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
     effects.reset();
     santa.reset();
     snowman.reset();
+    parade.reset();
     hint.reset();
     hoverLabel.show(null);
     giftLayer.reset();
     composer.setAvailable(false);
     completed = false;
+    skipDraw.hidden = false;
+    guestbookPrint.hide();
   });
 
   giftLayer.addGifts([EASTER_GIFT, SNOWMAN_GIFT], clock.time, "rise", { pinned: true, wobble: true });
@@ -228,7 +247,10 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
       },
     },
   );
-  syncGuestbook = () => guestbook.render();
+  syncGuestbook = () => {
+    guestbook.render();
+    if (completed) guestbookPrint.show(giftLayer.guestbook(), replyRepository.current());
+  };
 
   giftRepository
     .list()
@@ -335,23 +357,12 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
     return hit ? giftLayer.giftAt(hit.index) : null;
   }
 
-  const ZOOM_STEP = 0.15;
-  const zoomIn = requireElement<HTMLButtonElement>("zoom-in");
-  const zoomOut = requireElement<HTMLButtonElement>("zoom-out");
-  const applyZoom = (delta: number): void => {
-    camera.nudgeZoom(delta);
-    zoomIn.disabled = camera.zoom >= Camera.maxZoom - 0.001;
-    zoomOut.disabled = camera.zoom <= Camera.minZoom + 0.001;
-  };
-  zoomIn.addEventListener("click", () => applyZoom(ZOOM_STEP), { signal: lifetime.signal });
-  zoomOut.addEventListener("click", () => applyZoom(-ZOOM_STEP), { signal: lifetime.signal });
-
   const unbindControls = bindControls(canvas, {
     togglePause: () => clock.togglePause(),
     skip: () => typer.skipToNextStage(),
     restart: () => bus.emit("reset", undefined),
     rotate: (dx, dy) => camera.drag(dx, dy),
-    zoom: (delta) => applyZoom(delta),
+    zoom: (delta) => camera.nudgeZoom(delta),
     hover: (x, y) => {
       const gift = giftUnder(x, y);
       const catching = snowman.catchable && sprites.contains(SNOWMAN_SPRITE, x, y, 36);
@@ -373,7 +384,7 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
     },
   });
 
-  const updatables: readonly Updatable[] = [typer, scene, giftLayer, santa, snowman, hint, effects, camera];
+  const updatables: readonly Updatable[] = [typer, scene, giftLayer, santa, snowman, hint, effects, camera, parade];
 
   function currentStatus(): RunStatus {
     if (clock.paused) return "paused";

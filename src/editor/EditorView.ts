@@ -18,7 +18,7 @@ export class EditorView {
     private readonly container: HTMLElement,
     private readonly highlighter: Highlighter,
   ) {
-    container.replaceChildren();
+    this.container.replaceChildren(...this.kept());
   }
 
   render(source: TypingSource): void {
@@ -54,7 +54,9 @@ export class EditorView {
     code.className = "code";
     code.innerHTML = CARET;
     root.append(gutter, code);
-    this.container.append(root);
+    const anchor = this.container.querySelector("[data-keep]");
+    if (anchor) this.container.insertBefore(root, anchor);
+    else this.container.append(root);
     this.lines.push({ root, code, text: "" });
   }
 
@@ -72,6 +74,11 @@ export class EditorView {
   private clear(): void {
     this.lines.length = 0;
     this.renderedCursor = 0;
-    this.container.replaceChildren();
+    this.container.replaceChildren(...this.kept());
+  }
+
+  /** Nodes such as the guestbook printout stay in the console across restarts. */
+  private kept(): HTMLElement[] {
+    return [...this.container.querySelectorAll<HTMLElement>("[data-keep]")];
   }
 }

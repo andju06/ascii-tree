@@ -56,6 +56,14 @@ export class Typer implements TypingSource, Updatable, Resettable {
     this.flushMarkers();
   }
 
+  /** Finishes the remaining script so every stage and the closing credit appear at once. */
+  finish(): void {
+    if (this.done) return;
+    this.position = this.script.text.length;
+    this.wait = 0;
+    this.flushMarkers();
+  }
+
   reset(): void {
     this.position = 0;
     this.markerIndex = 0;

@@ -19,23 +19,13 @@ export function TreeApp() {
           <canvas id="scene" />
           <button type="button" className="hud-icon wand" id="gift-rewind" aria-label="연 기록 지우기" title="연 기록 지우기">
             <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M5 19 L14.5 9.5" />
-              <path d="M16.2 3.2 L17.3 6.4 L20.6 7.2 L17.3 8.1 L16.2 11.3 L15.1 8.1 L11.8 7.2 L15.1 6.4 Z" />
+              <path d="M4.2 20.2 L12.2 11.1" />
+              <path d="M15.8 0.8 L17.4 5.4 L22 7 L17.4 8.6 L15.8 13.2 L14.2 8.6 L9.6 7 L14.2 5.4 Z" />
             </svg>
           </button>
-          <div className="zoom-controls">
-            <button type="button" className="hud-icon" id="zoom-in" aria-label="트리 확대" title="트리 확대">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M12 5 V19" />
-                <path d="M5 12 H19" />
-              </svg>
-            </button>
-            <button type="button" className="hud-icon" id="zoom-out" aria-label="트리 축소" title="트리 축소">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M5 12 H19" />
-              </svg>
-            </button>
-          </div>
+          <button type="button" className="skip-draw" id="skip-draw">
+            건너뛰기
+          </button>
           <div className="hud-corner">
             <div className="hud-time" id="hud-time">
               t 0.00s
