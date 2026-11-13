@@ -31,7 +31,7 @@ export class StarfieldBackground implements Background {
     this.gradient = gradient;
 
     const skyHeight = viewport.height * this.skyRatio;
-    const count = Math.floor(viewport.width * skyHeight * this.density);
+    const count = Math.min(180, Math.floor(viewport.width * skyHeight * this.density));
     this.stars = Array.from({ length: count }, () => ({
       x: this.rng.random() * viewport.width,
       y: this.rng.random() * skyHeight,

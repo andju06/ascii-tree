@@ -24,7 +24,9 @@ export class CanvasPresenter {
   measure(): Viewport {
     const width = this.canvas.clientWidth;
     const height = this.canvas.clientHeight;
-    const dpr = window.devicePixelRatio || 1;
+    const rawDpr = window.devicePixelRatio || 1;
+    // Glyphs stay small, so a retina backing store on a desktop canvas only multiplies fill cost.
+    const dpr = width > 1100 ? 1 : rawDpr;
     const current = this.viewport;
     if (current && current.width === width && current.height === height && current.dpr === dpr) {
       return current;
@@ -34,7 +36,7 @@ export class CanvasPresenter {
     this.canvas.height = Math.max(1, Math.round(height * dpr));
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    const fontSize = clamp(Math.round(height / 100), 5, 9);
+    const fontSize = clamp(Math.round(height / 100), 5, Math.max(9, Math.round(height / 90)));
     const font = `${fontSize}px ${this.fontFamily}`;
     this.ctx.font = font;
     const cellW = this.ctx.measureText("M").width;
@@ -100,12 +102,10 @@ export class CanvasPresenter {
     const { ctx } = this;
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
-    ctx.shadowBlur = viewport.cellW * 2.6;
+    ctx.globalAlpha = 0.9;
     for (let k = 0; k < fb.glowCount; k++) {
       const cell = fb.glowCells[k];
-      const color = COLOR_STRINGS[fb.color[cell]];
-      ctx.fillStyle = color;
-      ctx.shadowColor = color;
+      ctx.fillStyle = COLOR_STRINGS[fb.color[cell]];
       this.fillCell(fb, cell, viewport);
     }
     ctx.restore();
