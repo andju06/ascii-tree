@@ -38,7 +38,7 @@ import type { Viewport } from "./render/Viewport";
 import type { ParticleSource } from "./scene/ParticleSource";
 import { GrowthWave } from "./scene/GrowthWave";
 import { ParticleStore } from "./scene/ParticleStore";
-import { ChristmasParade } from "./scene/ChristmasParade";
+import { ChristmasParade, RUDOLPH_NOTE, SLEIGH_SPRITE } from "./scene/ChristmasParade";
 import { Scene } from "./scene/Scene";
 import { ConeShape } from "./scene/TreeShape";
 import { BranchBuilder } from "./scene/builders/BranchBuilder";
@@ -366,11 +366,16 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
     hover: (x, y) => {
       const gift = giftUnder(x, y);
       const catching = snowman.catchable && sprites.contains(SNOWMAN_SPRITE, x, y, 36);
-      canvas.style.cursor = gift || catching ? "pointer" : "";
+      const sleigh = sprites.contains(SLEIGH_SPRITE, x, y, 28);
+      canvas.style.cursor = gift || catching || sleigh ? "pointer" : "";
       giftLayer.setHovered(gift?.id ?? null);
       hoverLabel.show(gift);
     },
     click: (x, y) => {
+      if (sprites.contains(SLEIGH_SPRITE, x, y, 28)) {
+        popup.show(RUDOLPH_NOTE);
+        return;
+      }
       if (snowman.catchable && sprites.contains(SNOWMAN_SPRITE, x, y, 36)) {
         snowman.catch(clock.time);
         return;
