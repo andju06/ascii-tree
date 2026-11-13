@@ -384,7 +384,7 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
     },
   });
 
-  const updatables: readonly Updatable[] = [typer, scene, giftLayer, santa, snowman, hint, effects, camera, parade];
+  const updatables: readonly Updatable[] = [typer, guestbookPrint, scene, giftLayer, santa, snowman, hint, effects, camera, parade];
 
   function currentStatus(): RunStatus {
     if (clock.paused) return "paused";
