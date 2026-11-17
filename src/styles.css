@@ -257,6 +257,88 @@ a.hud-icon {
   .editor-hint {
     display: none;
   }
+
+  .hud-overlay {
+    position: absolute;
+    z-index: 2;
+    top: max(8px, env(safe-area-inset-top));
+    right: max(8px, env(safe-area-inset-right));
+    left: max(8px, env(safe-area-inset-left));
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    pointer-events: none;
+  }
+
+  .hud-overlay-main,
+  .hud-tools,
+  .hud-overlay .hud-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .hud-overlay-main {
+    width: 100%;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+
+  .hud-tools,
+  .hud-overlay .hud-icon,
+  .hud-overlay .hud-label,
+  .hud-overlay .make-tree {
+    flex: none;
+  }
+
+  .hud-overlay .wand,
+  .hud-overlay .skip-draw,
+  .hud-overlay .make-tree,
+  .hud-overlay .hud-corner {
+    position: static;
+  }
+
+  .hud-overlay .hud-icon,
+  .hud-overlay .hud-label,
+  .hud-overlay .make-tree {
+    height: 36px;
+    pointer-events: auto;
+  }
+
+  .hud-overlay .hud-icon {
+    width: 36px;
+  }
+
+  .hud-overlay .hud-label,
+  .hud-overlay .make-tree {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 10px;
+    line-height: 1;
+  }
+
+  .hud-overlay .hud-time {
+    display: none;
+  }
+
+  .hud-overlay .hud-corner {
+    flex: 1 1 auto;
+    justify-content: flex-end;
+    max-width: none;
+  }
+
+  .hud-overlay .hud-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .tree-kind {
+    max-width: calc(100% - 24px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }
 
 .editor-status[data-status="paused"] {
@@ -1415,6 +1497,7 @@ a.hud-icon {
 
 .admin-page {
   align-items: flex-start;
+  justify-content: flex-start;
 }
 
 .admin-card {
@@ -1565,4 +1648,61 @@ a.hud-icon {
   border: none;
   font: inherit;
   cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .admin-page {
+    padding: 0;
+  }
+
+  .admin-card {
+    width: 100%;
+    min-height: 100%;
+    border-right: 0;
+    border-left: 0;
+  }
+
+  .auth-card.admin-card > :not(h1) {
+    margin-right: 12px;
+    margin-left: 12px;
+  }
+
+  .admin-card .auth-links {
+    justify-content: flex-start;
+    gap: 8px 16px;
+  }
+
+  .admin-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .admin-tabs button,
+  .admin-actions button,
+  .admin-heading button,
+  .admin-user-tools button,
+  .auth-card label.admin-status-choice select {
+    height: 36px;
+  }
+
+  .admin-tabs button {
+    width: 100%;
+  }
+
+  .admin-entry.admin-user {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-user-tools {
+    flex-wrap: wrap;
+    margin-left: 0;
+  }
+
+  .admin-entry > p strong,
+  .admin-reply > p strong {
+    display: block;
+    margin-bottom: 4px;
+    color: #ffe14a;
+  }
 }

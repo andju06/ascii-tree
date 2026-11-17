@@ -73,77 +73,83 @@ export function TreeApp({
         <section className="viewport">
           <canvas id="scene" />
           {notice ? <NoticeLine /> : null}
-          <button type="button" className="hud-icon wand" id="gift-rewind" aria-label="연 기록 지우기" title="연 기록 지우기">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4.2 20.2 L12.2 11.1" />
-              <path d="M15.8 0.8 L17.4 5.4 L22 7 L17.4 8.6 L15.8 13.2 L14.2 8.6 L9.6 7 L14.2 5.4 Z" />
-            </svg>
-          </button>
-          <button type="button" className="hud-icon skip-draw" id="skip-draw" aria-label="건너뛰기" title="건너뛰기">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4 6v12l8-6z" />
-              <path d="M13 6v12l8-6z" />
-            </svg>
-          </button>
-          <p className="tree-kind">{treeLabel}</p>
-          {share ? (
-            <Link className="make-tree" href="/">
-              홈으로 가기
-            </Link>
-          ) : (
-            <a className="make-tree" href="/me">
-              {hasTree ? "내 트리 가기" : "내 트리 만들기"}
-            </a>
-          )}
-          <div className="hud-corner">
-            <div className="hud-time" id="hud-time">
-              t 0.00s
-            </div>
-            <div className="hud-actions">
-              <button type="button" className="hud-label" id="gift-list">
-                방명록
-              </button>
-              <button type="button" className="hud-label" id="gift-button" hidden>
-                방명록 남기기
-              </button>
-              {share ? (
-                <button type="button" className="hud-icon" id="share-tree" aria-label="공유하기" title="공유하기">
+          <div className="hud-overlay">
+            <div className="hud-overlay-main">
+              <div className="hud-tools">
+                <button type="button" className="hud-icon wand" id="gift-rewind" aria-label="연 기록 지우기" title="연 기록 지우기">
                   <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <circle cx="6" cy="12" r="2.2" />
-                    <circle cx="17" cy="6.5" r="2.2" />
-                    <circle cx="17" cy="17.5" r="2.2" />
-                    <path d="M8 11.2 L15 7.6" />
-                    <path d="M8 12.8 L15 16.4" />
+                    <path d="M4.2 20.2 L12.2 11.1" />
+                    <path d="M15.8 0.8 L17.4 5.4 L22 7 L17.4 8.6 L15.8 13.2 L14.2 8.6 L9.6 7 L14.2 5.4 Z" />
                   </svg>
                 </button>
-              ) : null}
-              {signedIn && admin ? (
-                <a className="hud-icon" href="/admin" aria-label="관리" title="관리">
-                  <PersonIcon />
-                </a>
-              ) : signedIn ? (
-                <button
-                  type="button"
-                  className="hud-icon"
-                  aria-label="내정보"
-                  title="내정보"
-                  onClick={() => window.dispatchEvent(new Event("account-open"))}
-                >
-                  <PersonIcon />
+                <button type="button" className="hud-icon skip-draw" id="skip-draw" aria-label="건너뛰기" title="건너뛰기">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 6v12l8-6z" />
+                    <path d="M13 6v12l8-6z" />
+                  </svg>
                 </button>
-              ) : share ? null : (
-                <button
-                  type="button"
-                  className="hud-icon"
-                  aria-label="로그인"
-                  title="로그인"
-                  onClick={() => window.dispatchEvent(new Event("auth-open"))}
-                >
-                  <PersonIcon />
-                </button>
-              )}
+              </div>
+              <div className="hud-corner">
+                <div className="hud-time" id="hud-time">
+                  t 0.00s
+                </div>
+                <div className="hud-actions">
+                  <button type="button" className="hud-label" id="gift-list">
+                    방명록
+                  </button>
+                  <button type="button" className="hud-label" id="gift-button" hidden>
+                    방명록 남기기
+                  </button>
+                  {share ? (
+                    <button type="button" className="hud-icon" id="share-tree" aria-label="공유하기" title="공유하기">
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="6" cy="12" r="2.2" />
+                        <circle cx="17" cy="6.5" r="2.2" />
+                        <circle cx="17" cy="17.5" r="2.2" />
+                        <path d="M8 11.2 L15 7.6" />
+                        <path d="M8 12.8 L15 16.4" />
+                      </svg>
+                    </button>
+                  ) : null}
+                  {signedIn && admin ? (
+                    <a className="hud-icon" href="/admin" aria-label="관리" title="관리">
+                      <PersonIcon />
+                    </a>
+                  ) : signedIn ? (
+                    <button
+                      type="button"
+                      className="hud-icon"
+                      aria-label="내정보"
+                      title="내정보"
+                      onClick={() => window.dispatchEvent(new Event("account-open"))}
+                    >
+                      <PersonIcon />
+                    </button>
+                  ) : share ? null : (
+                    <button
+                      type="button"
+                      className="hud-icon"
+                      aria-label="로그인"
+                      title="로그인"
+                      onClick={() => window.dispatchEvent(new Event("auth-open"))}
+                    >
+                      <PersonIcon />
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
+            {share ? (
+              <Link className="make-tree" href="/">
+                홈으로 가기
+              </Link>
+            ) : (
+              <a className="make-tree" href="/me">
+                {hasTree ? "내 트리 가기" : "내 트리 만들기"}
+              </a>
+            )}
           </div>
+          <p className="tree-kind">{treeLabel}</p>
           <div className="hud-info">
             <div>@daisy · 2026</div>
             <div>
