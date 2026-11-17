@@ -192,11 +192,12 @@ export function AuthForm({
           />
         ) : null}
         {error ? <p className="auth-error">{error}</p> : null}
-        <button type="submit" disabled={pending}>
-          {title}
+        {pending ? <p className="auth-note">잠시만 기다려 주세요.</p> : null}
+        <button type="submit" disabled={pending} aria-busy={pending}>
+          {pending ? (currentMode === "signup" ? "가입하는 중" : "로그인하는 중") : title}
         </button>
         <p className="auth-links">
-          <button type="button" onClick={switchMode}>
+          <button type="button" onClick={switchMode} disabled={pending}>
             {currentMode === "signup" ? "로그인" : "회원가입"}
           </button>
           <button type="button" onClick={dismiss}>
