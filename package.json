@@ -7,13 +7,17 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "NODE_OPTIONS='--require ./scripts/typescript6-for-eslint.cjs' eslint ."
   },
   "devDependencies": {
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "typescript": "^7.0.2"
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.4.6",
+    "typescript": "^7.0.2",
+    "typescript6": "npm:typescript@^6.0.2"
   },
   "dependencies": {
     "mongodb": "^7.8.0",
