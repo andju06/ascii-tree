@@ -1,28 +1,48 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import type { Gift } from "@/gifts/Gift";
 import { GIFT_LIMITS } from "@/gifts/Gift";
 import { parseGifts } from "@/gifts/validation";
-import { NOTICE_LIMITS, type Notice } from "@/notices/Notice";
-import { parseNotice } from "@/notices/validation";
 import type { Reply } from "@/replies/Reply";
 import { REPLY_LIMITS } from "@/replies/Reply";
 import { parseReplies } from "@/replies/validation";
+import { TreeAdmin } from "./TreeAdmin";
+import { TreeCommentAdmin } from "./TreeCommentAdmin";
+import { UserAdmin } from "./UserAdmin";
 
-type EditTarget = { readonly kind: "notice" | "gift" | "reply"; readonly id: string };
+type EditTarget = { readonly kind: "gift" | "reply"; readonly id: string };
+type Tab = "main" | "users" | "trees" | "comments";
 
 export function AdminDesk() {
   const [gate, setGate] = useState<"loading" | "guest" | "forbidden" | "ready">("loading");
-  const [notices, setNotices] = useState<Notice[]>([]);
+  const [loginId, setLoginId] = useState("");
   const [gifts, setGifts] = useState<Gift[]>([]);
   const [replies, setReplies] = useState<Reply[]>([]);
-  const [draft, setDraft] = useState("");
   const [editing, setEditing] = useState<EditTarget | null>(null);
   const [author, setAuthor] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [tab, setTab] = useState<Tab>("main");
+
+  async function logout() {
+    setPending(true);
+    setError("");
+    try {
+      const response = await fetch("/api/auth/logout", { method: "POST" });
+      if (!response.ok) {
+        setError("로그아웃에 실패했습니다.");
+        return;
+      }
+      window.location.assign("/");
+    } catch {
+      setError("로그아웃에 실패했습니다.");
+    } finally {
+      setPending(false);
+    }
+  }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -32,18 +52,14 @@ export function AdminDesk() {
         setGate("guest");
         return;
       }
-      const body = (await session.json()) as { admin?: unknown };
+      const body = (await session.json()) as { admin?: unknown; loginId?: unknown };
       if (!session.ok || body.admin !== true) {
-        setGate("forbidden");
+        if (typeof body.loginId === "string") setLoginId(body.loginId);
+        setGate(session.status === 401 ? "guest" : "forbidden");
         return;
       }
-      const [noticeResponse, bookResponse] = await Promise.all([
-        fetch("/api/admin/notices", { signal: controller.signal }),
-        fetch("/api/gifts", { signal: controller.signal }),
-      ]);
-      const noticeBody = (await noticeResponse.json()) as { notices?: unknown };
+      const bookResponse = await fetch("/api/gifts", { signal: controller.signal });
       const bookBody = (await bookResponse.json()) as { gifts?: unknown; replies?: unknown };
-      setNotices(parseNoticeList(noticeBody.notices));
       setGifts([...parseGifts(bookBody.gifts)].reverse());
       setReplies(parseReplies(bookBody.replies));
       setGate("ready");
@@ -52,30 +68,6 @@ export function AdminDesk() {
     });
     return () => controller.abort();
   }, []);
-
-  async function createNotice() {
-    setPending(true);
-    setError("");
-    try {
-      const response = await fetch("/api/admin/notices", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ message: draft }),
-      });
-      const body = (await response.json().catch(() => null)) as { notice?: unknown; error?: unknown } | null;
-      const notice = parseNotice(body?.notice);
-      if (!response.ok || !notice) {
-        setError(typeof body?.error === "string" ? body.error : "공지를 올리지 못했습니다.");
-        return;
-      }
-      setNotices((current) => [notice, ...current.filter((item) => item.id !== notice.id)]);
-      setDraft("");
-    } catch {
-      setError("공지를 올리지 못했습니다.");
-    } finally {
-      setPending(false);
-    }
-  }
 
   function beginEdit(target: EditTarget, nextAuthor: string, nextMessage: string) {
     setEditing(target);
@@ -86,13 +78,8 @@ export function AdminDesk() {
 
   async function saveEdit() {
     if (!editing) return;
-    const path =
-      editing.kind === "notice"
-        ? `/api/admin/notices/${editing.id}`
-        : editing.kind === "gift"
-          ? `/api/admin/gifts/${editing.id}`
-          : `/api/admin/replies/${editing.id}`;
-    const payload = editing.kind === "notice" ? { message } : { author, message };
+    const path = editing.kind === "gift" ? `/api/admin/gifts/${editing.id}` : `/api/admin/replies/${editing.id}`;
+    const payload = { author, message };
     setPending(true);
     setError("");
     try {
@@ -117,12 +104,7 @@ export function AdminDesk() {
 
   async function remove(target: EditTarget) {
     if (!window.confirm("삭제할까요?")) return;
-    const path =
-      target.kind === "notice"
-        ? `/api/admin/notices/${target.id}`
-        : target.kind === "gift"
-          ? `/api/admin/gifts/${target.id}`
-          : `/api/admin/replies/${target.id}`;
+    const path = target.kind === "gift" ? `/api/admin/gifts/${target.id}` : `/api/admin/replies/${target.id}`;
     setPending(true);
     setError("");
     try {
@@ -132,7 +114,6 @@ export function AdminDesk() {
         setError(typeof body?.error === "string" ? body.error : "삭제하지 못했습니다.");
         return;
       }
-      if (target.kind === "notice") setNotices((current) => current.filter((item) => item.id !== target.id));
       if (target.kind === "gift") {
         setGifts((current) => current.filter((item) => item.id !== target.id));
         setReplies((current) => current.filter((item) => item.parentId !== target.id));
@@ -147,12 +128,6 @@ export function AdminDesk() {
   }
 
   function applyEdit(target: EditTarget, nextAuthor: string, nextMessage: string) {
-    if (target.kind === "notice") {
-      setNotices((current) =>
-        current.map((item) => (item.id === target.id ? { ...item, message: nextMessage, updatedAt: new Date().toISOString() } : item)),
-      );
-      return;
-    }
     if (target.kind === "gift") {
       setGifts((current) => current.map((item) => (item.id === target.id ? { ...item, author: nextAuthor, message: nextMessage } : item)));
       return;
@@ -174,8 +149,8 @@ export function AdminDesk() {
           <h1>관리</h1>
           <p>로그인이 필요합니다.</p>
           <p className="auth-links">
-            <a href="/login">로그인</a>
-            <a href="/">트리로 돌아가기</a>
+            <a href="/login?next=/admin">로그인</a>
+            <Link href="/">트리로 돌아가기</Link>
           </p>
         </section>
       </main>
@@ -186,9 +161,9 @@ export function AdminDesk() {
       <main className="auth-page">
         <section className="auth-card">
           <h1>관리</h1>
-          <p>관리자만 들어갈 수 있습니다.</p>
+          {loginId ? <p className="auth-session">{loginId} 로 로그인되어 있습니다.</p> : null}
           <p className="auth-links">
-            <a href="/">트리로 돌아가기</a>
+            <Link href="/">트리로 돌아가기</Link>
           </p>
         </section>
       </main>
@@ -200,50 +175,33 @@ export function AdminDesk() {
       <section className="auth-card admin-card">
         <h1>관리</h1>
         <p className="auth-links">
-          <a href="/">트리로 돌아가기</a>
+          <a href="/account">내정보</a>
+          <Link href="/">트리로 돌아가기</Link>
+          <button type="button" disabled={pending} onClick={() => void logout()}>
+            로그아웃
+          </button>
         </p>
-        {error ? <p className="auth-error">{error}</p> : null}
-
-        <h2>공지</h2>
-        <label>
-          새 공지
-          <input maxLength={NOTICE_LIMITS.messageMax} value={draft} onChange={(event) => setDraft(event.target.value)} />
-        </label>
-        <button type="button" disabled={pending || draft.trim().length === 0} onClick={() => void createNotice()}>
-          공지 올리기
-        </button>
-        {notices.map((notice) => (
-          <article key={notice.id} className="admin-entry">
-            {editing?.kind === "notice" && editing.id === notice.id ? (
-              <Editor
-                author=""
-                message={message}
-                authorMax={GIFT_LIMITS.authorMax}
-                messageMax={NOTICE_LIMITS.messageMax}
-                showAuthor={false}
-                pending={pending}
-                onAuthor={setAuthor}
-                onMessage={setMessage}
-                onSave={() => void saveEdit()}
-                onCancel={() => setEditing(null)}
-              />
-            ) : (
-              <>
-                <p>{notice.message}</p>
-                <div className="admin-actions">
-                  <button type="button" disabled={pending} onClick={() => beginEdit({ kind: "notice", id: notice.id }, "", notice.message)}>
-                    수정
-                  </button>
-                  <button type="button" disabled={pending} onClick={() => void remove({ kind: "notice", id: notice.id })}>
-                    삭제
-                  </button>
-                </div>
-              </>
-            )}
-          </article>
-        ))}
-
-        <h2>방명록</h2>
+        <nav className="admin-tabs">
+          <button type="button" aria-selected={tab === "main"} onClick={() => setTab("main")}>
+            메인 댓글
+          </button>
+          <button type="button" aria-selected={tab === "users"} onClick={() => setTab("users")}>
+            유저
+          </button>
+          <button type="button" aria-selected={tab === "trees"} onClick={() => setTab("trees")}>
+            유저 트리
+          </button>
+          <button type="button" aria-selected={tab === "comments"} onClick={() => setTab("comments")}>
+            트리 댓글
+          </button>
+        </nav>
+        {error && tab === "main" ? <p className="auth-error">{error}</p> : null}
+        {tab === "users" ? <UserAdmin /> : null}
+        {tab === "trees" ? <TreeAdmin /> : null}
+        {tab === "comments" ? <TreeCommentAdmin /> : null}
+        {tab === "main" ? (
+          <>
+        <h2>메인 댓글</h2>
         {gifts.map((gift) => (
           <article key={gift.id} className="admin-entry">
             {editing?.kind === "gift" && editing.id === gift.id ? (
@@ -314,6 +272,8 @@ export function AdminDesk() {
               ))}
           </article>
         ))}
+          </>
+        ) : null}
       </section>
     </main>
   );
@@ -358,7 +318,3 @@ function Editor({
   );
 }
 
-function parseNoticeList(value: unknown): Notice[] {
-  if (!Array.isArray(value)) return [];
-  return value.map(parseNotice).filter((notice): notice is Notice => notice !== null);
-}

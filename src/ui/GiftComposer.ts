@@ -1,3 +1,4 @@
+import { PASSCODE_LIMITS, validatePasscode } from "../spaces/passcode";
 import { GIFT_LIMITS, GIFT_PALETTE, GIFT_SHAPE_LABELS, type GiftShape, type NewGift } from "../gifts/Gift";
 import type { GiftStyle } from "../gifts/style";
 import { isGiftShape, validateNewGift } from "../gifts/validation";
@@ -5,6 +6,8 @@ import { Modal } from "./Modal";
 
 export interface GiftComposerElements {
   readonly trigger: HTMLButtonElement;
+  /** Second entry point, such as the guestbook list. Hidden with the corner button. */
+  readonly compose?: HTMLButtonElement;
   readonly root: HTMLElement;
   readonly form: HTMLFormElement;
   readonly author: HTMLInputElement;
@@ -21,7 +24,7 @@ export interface GiftComposerElements {
   readonly submit: HTMLButtonElement;
 }
 
-export type GiftSubmitHandler = (input: NewGift) => Promise<void>;
+export type GiftSubmitHandler = (input: NewGift, passcode?: string) => Promise<void>;
 
 const COLOR_INPUT_NAME = "gift-color";
 
@@ -47,6 +50,7 @@ export class GiftComposer {
 
     const options = { signal };
     elements.trigger.addEventListener("click", () => this.open(), options);
+    elements.compose?.addEventListener("click", () => this.open(), options);
     elements.message.addEventListener("input", () => this.updateCounter(), options);
     elements.shapes.addEventListener(
       "change",
@@ -79,6 +83,7 @@ export class GiftComposer {
 
   setAvailable(available: boolean): void {
     this.elements.trigger.hidden = !available;
+    if (this.elements.compose) this.elements.compose.hidden = !available;
     if (!available) this.modal.close();
   }
 
@@ -137,13 +142,20 @@ export class GiftComposer {
       this.setError(result.error);
       return;
     }
+    const passcode = this.passcode();
+    if (!passcode.ok) {
+      this.setError(passcode.error);
+      return;
+    }
 
     this.submitting = true;
     this.elements.submit.disabled = true;
     this.setError("");
     try {
-      await this.onSubmit(result.value);
+      await this.onSubmit(result.value, passcode.value);
       this.elements.message.value = "";
+      const field = document.getElementById("gift-passcode");
+      if (field instanceof HTMLInputElement) field.value = "";
       this.modal.close();
     } catch (error) {
       this.setError(error instanceof Error ? error.message : "선물을 남기지 못했습니다.");
@@ -155,6 +167,15 @@ export class GiftComposer {
 
   private updateCounter(): void {
     this.elements.counter.textContent = `${this.elements.message.value.length}/${GIFT_LIMITS.messageMax}`;
+  }
+
+  private passcode(): { ok: true; value: string | undefined } | { ok: false; error: string } {
+    const field = document.getElementById("gift-passcode");
+    if (!(field instanceof HTMLInputElement)) return { ok: true, value: undefined };
+    field.maxLength = PASSCODE_LIMITS.max;
+    const result = validatePasscode(field.value);
+    if (!result.ok) return result;
+    return { ok: true, value: result.value };
   }
 
   private setError(message: string): void {

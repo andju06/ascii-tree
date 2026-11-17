@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { TempPasswordGate } from "@/auth/TempPasswordGate";
 import "@/styles.css";
 
 const title = "ASCII Christmas Tree";
@@ -30,7 +31,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { readonly children: ReactNode }) {
   return (
     <html lang="ko">
-      <body>{children}</body>
+      <body>
+        {children}
+        <TempPasswordGate />
+      </body>
     </html>
   );
 }

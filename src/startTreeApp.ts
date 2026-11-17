@@ -14,7 +14,9 @@ import { SNOWMAN_GIFT, SNOWMAN_MELTED, SNOWMAN_SERVED } from "./easter/snowmanGi
 import { SNOWMAN_SPRITE, SnowmanChase } from "./easter/SnowmanChase";
 import { EffectsSystem } from "./effects/EffectsSystem";
 import type { Gift } from "./gifts/Gift";
+import { EntryLockClient } from "./gifts/EntryLockClient";
 import { createGiftRepository } from "./gifts/createGiftRepository";
+import { ALL_TREE_FEATURES, type TreeFeatures } from "./spaces/features";
 import { GiftHint } from "./gifts/GiftHint";
 import { GiftHoverLabel } from "./gifts/GiftHoverLabel";
 import { GiftLayer } from "./gifts/GiftLayer";
@@ -62,13 +64,45 @@ function requireElement<T extends HTMLElement>(id: string): T {
   return element as T;
 }
 
+async function shareTree(button: HTMLButtonElement): Promise<void> {
+  const url = window.location.href;
+  try {
+    if (typeof navigator.share === "function") {
+      await navigator.share({ title: document.title, url });
+      return;
+    }
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(url);
+    noteShare(button, "링크를 복사했습니다");
+  } catch {
+    noteShare(button, "공유하지 못했습니다");
+  }
+}
+
+function noteShare(button: HTMLButtonElement, label: string): void {
+  button.setAttribute("aria-label", label);
+  button.title = label;
+  window.setTimeout(() => {
+    button.setAttribute("aria-label", "공유하기");
+    button.title = "공유하기";
+  }, 1500);
+}
+
 export interface TreeAppOptions {
   /** Gifts API base URL; empty or undefined keeps gifts in browser storage. */
   readonly giftApiUrl?: string;
+  /** Personal trees require a password to change or remove a guestbook entry. */
+  readonly entryPasscode?: boolean;
+  /** Decorations on this tree. The public tree keeps all of them. */
+  readonly features?: TreeFeatures;
 }
 
 /** Wires the whole experience onto the markup rendered by `TreeApp`. Returns a disposer. */
-export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
+export function startTreeApp({ giftApiUrl, entryPasscode = false, features = ALL_TREE_FEATURES }: TreeAppOptions): () => void {
   const lifetime = new AbortController();
   const bus = new EventBus<AppEvents>();
   const clock = new Clock();
@@ -95,8 +129,8 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
   const effects = new EffectsSystem();
   const giftLayout = new GiftLayout(SEED, {
     box: new BoxPilePlacer({
-      goldRibbonIds: new Set([EASTER_GIFT.id]),
-      anchors: new Map([[SNOWMAN_GIFT.id, { angle: -1.15, radius: 3.45 }]]),
+      goldRibbonIds: new Set(features.santa ? [EASTER_GIFT.id] : []),
+      anchors: features.snowman ? new Map([[SNOWMAN_GIFT.id, { angle: -1.15, radius: 3.45 }]]) : new Map(),
     }),
     ornament: new OrnamentPlacer(treeShape),
   });
@@ -143,6 +177,9 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
     gifts: requireElement("hud-gifts"),
   });
 
+  let syncGuestbook = (): void => {};
+  let presentGift: (gift: Gift | null) => void = () => {};
+
   const popup = new GiftPopup(
     {
       root: requireElement("gift-popup"),
@@ -150,15 +187,20 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
       message: requireElement("popup-message"),
       date: requireElement<HTMLTimeElement>("popup-date"),
       swatch: requireElement("popup-swatch"),
+      tools: requireElement("popup-tools"),
+      panel: requireElement("popup-panel"),
     },
     lifetime.signal,
+    {
+      onShow: (gift) => presentGift(gift),
+      onHide: () => presentGift(null),
+    },
   );
-
-  let syncGuestbook = (): void => {};
 
   const composer = new GiftComposer(
     {
       trigger: requireElement<HTMLButtonElement>("gift-button"),
+      compose: requireElement<HTMLButtonElement>("guestbook-compose"),
       root: requireElement("gift-compose"),
       form: requireElement<HTMLFormElement>("gift-form"),
       author: requireElement<HTMLInputElement>("gift-author"),
@@ -172,10 +214,10 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
       error: requireElement("gift-error"),
       submit: requireElement<HTMLButtonElement>("gift-submit"),
     },
-    async (input) => {
+    async (input, passcode) => {
       const wait = cooldown.remainingSeconds();
       if (wait > 0) throw new Error(`${wait}초 후에 다시 선물할 수 있어요.`);
-      const gift = await giftRepository.create(input);
+      const gift = await giftRepository.create(input, passcode);
       cooldown.mark();
       giftLayer.addGifts([gift], clock.time, "fall");
       syncGuestbook();
@@ -205,12 +247,23 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
     { signal: lifetime.signal },
   );
 
+  const share = document.getElementById("share-tree");
+  if (share instanceof HTMLButtonElement) {
+    share.addEventListener(
+      "click",
+      () => {
+        void shareTree(share);
+      },
+      { signal: lifetime.signal },
+    );
+  }
+
   bus.on("stage", (stage) => scene.activate(stage, clock.time));
   bus.on("complete", () => {
     completed = true;
     skipDraw.hidden = true;
     giftLayer.reveal(clock.time);
-    parade.start();
+    if (features.rudolph) parade.start();
     hint.schedule(clock.time + 1.5 + giftLayer.count * 0.06);
     composer.setAvailable(true);
     syncGuestbook();
@@ -232,7 +285,13 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
     guestbookPrint.hide();
   });
 
-  giftLayer.addGifts([EASTER_GIFT, SNOWMAN_GIFT], clock.time, "rise", { pinned: true, wobble: true });
+  const pinned = [
+    ...(features.santa ? [EASTER_GIFT] : []),
+    ...(features.snowman ? [SNOWMAN_GIFT] : []),
+  ];
+  if (pinned.length > 0) giftLayer.addGifts(pinned, clock.time, "rise", { pinned: true, wobble: true });
+  const entryLock = entryPasscode && giftApiUrl ? new EntryLockClient(giftApiUrl) : null;
+  let refreshGuestbook = (): void => {};
   const guestbook = new GuestbookList(
     {
       root: requireElement("guestbook"),
@@ -246,14 +305,50 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
       isReplyRead: (id) => readReplies.has(id),
       readGift: (id) => giftLayer.acknowledge(id),
       readReply: (id) => readReplies.add(id),
-      reply: async (input) => {
+      onClose: () => {
+        if (!lifetime.signal.aborted) refreshGuestbook();
+      },
+      reply: async (input, passcode) => {
         const wait = cooldown.remainingSeconds();
         if (wait > 0) throw new Error(`${wait}초 후에 다시 남길 수 있어요.`);
-        await replyRepository.create(input);
+        await replyRepository.create(input, passcode);
         cooldown.mark();
       },
+      lock: entryLock
+        ? {
+            check: (kind, id, passcode) => entryLock.check(kind, id, passcode),
+            update: async (id, author, message, passcode) => {
+              await entryLock.update(id, author, message, passcode);
+              giftLayer.replaceText(id, author, message);
+              const next = giftLayer.guestbook().find((entry) => entry.gift.id === id)?.gift;
+              if (next) popup.show(next);
+              syncGuestbook();
+            },
+            remove: async (id, passcode) => {
+              await entryLock.remove(id, passcode);
+              giftLayer.forget(id);
+              popup.close();
+              syncGuestbook();
+            },
+            updateReply: async (id, author, message, passcode) => {
+              await entryLock.updateReply(id, author, message, passcode);
+              await giftRepository.list();
+              syncGuestbook();
+            },
+            removeReply: async (id, passcode) => {
+              await entryLock.removeReply(id, passcode);
+              await giftRepository.list();
+              syncGuestbook();
+            },
+          }
+        : undefined,
     },
   );
+  guestbook.bindPopup(requireElement("popup-tools"), requireElement("popup-panel"), lifetime.signal);
+  presentGift = (gift) => {
+    const known = gift !== null && giftLayer.guestbook().some((entry) => entry.gift.id === gift.id);
+    guestbook.present(known ? gift : null);
+  };
   syncGuestbook = () => {
     guestbook.render();
     if (completed) guestbookPrint.show(giftLayer.guestbook(), replyRepository.current());
@@ -307,14 +402,14 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
   const listButton = requireElement<HTMLButtonElement>("gift-list");
   const refreshButton = requireElement<HTMLButtonElement>("guestbook-refresh");
   let refreshToken = 0;
-  const refreshGuestbook = (): void => {
+  refreshGuestbook = (): void => {
     const token = ++refreshToken;
     refreshButton.disabled = true;
     giftRepository
       .list()
       .then((gifts) => {
         if (token !== refreshToken) return;
-        giftLayer.addGifts(gifts, clock.time, "fall");
+        giftLayer.adopt(gifts, clock.time);
         syncGuestbook();
       })
       .catch((error: unknown) => {
@@ -372,18 +467,18 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
     zoom: (delta) => camera.nudgeZoom(delta),
     hover: (x, y) => {
       const gift = giftUnder(x, y);
-      const catching = snowman.catchable && sprites.contains(SNOWMAN_SPRITE, x, y, 36);
-      const sleigh = sprites.contains(SLEIGH_SPRITE, x, y, 28);
+      const catching = features.snowman && snowman.catchable && sprites.contains(SNOWMAN_SPRITE, x, y, 36);
+      const sleigh = features.rudolph && sprites.contains(SLEIGH_SPRITE, x, y, 28);
       canvas.style.cursor = gift || catching || sleigh ? "pointer" : "";
       giftLayer.setHovered(gift?.id ?? null);
       hoverLabel.show(gift);
     },
     click: (x, y) => {
-      if (sprites.contains(SLEIGH_SPRITE, x, y, 28)) {
+      if (features.rudolph && sprites.contains(SLEIGH_SPRITE, x, y, 28)) {
         popup.show(RUDOLPH_NOTE);
         return;
       }
-      if (snowman.catchable && sprites.contains(SNOWMAN_SPRITE, x, y, 36)) {
+      if (features.snowman && snowman.catchable && sprites.contains(SNOWMAN_SPRITE, x, y, 36)) {
         snowman.catch(clock.time);
         return;
       }

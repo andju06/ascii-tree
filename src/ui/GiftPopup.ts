@@ -7,6 +7,8 @@ export interface GiftPopupElements {
   readonly message: HTMLElement;
   readonly date: HTMLTimeElement;
   readonly swatch: HTMLElement;
+  readonly tools: HTMLElement;
+  readonly panel: HTMLElement;
 }
 
 const dateFormat = new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" });
@@ -17,8 +19,9 @@ export class GiftPopup {
   constructor(
     private readonly elements: GiftPopupElements,
     signal: AbortSignal,
+    private readonly hooks: { onShow?: (gift: Gift) => void; onHide?: () => void } = {},
   ) {
-    this.modal = new Modal(elements.root, signal);
+    this.modal = new Modal(elements.root, signal, () => this.hooks.onHide?.());
   }
 
   show(gift: Gift): void {
@@ -29,6 +32,11 @@ export class GiftPopup {
     date.textContent = dateFormat.format(new Date(gift.createdAt));
     swatch.style.backgroundColor = gift.color;
     swatch.classList.toggle("is-ornament", gift.shape === "ornament");
+    this.hooks.onShow?.(gift);
     this.modal.open();
+  }
+
+  close(): void {
+    this.modal.close();
   }
 }

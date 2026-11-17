@@ -25,7 +25,7 @@ export class HttpGiftRepository implements GiftRepository {
   ) {
     this.replyRepository = {
       current: () => this.replyCache,
-      create: (input) => this.createReply(input),
+      create: (input, passcode) => this.createReply(input, passcode),
       subscribe: (listener) => {
         this.replyListeners.add(listener);
         return () => this.replyListeners.delete(listener);
@@ -44,11 +44,11 @@ export class HttpGiftRepository implements GiftRepository {
     return snapshot.gifts;
   }
 
-  async create(input: NewGift): Promise<Gift> {
+  async create(input: NewGift, passcode?: string): Promise<Gift> {
     const response = await fetch(this.url("/gifts"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(input),
+      body: JSON.stringify(passcode ? { ...input, passcode } : input),
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
     const body: unknown = await response.json().catch(() => null);
@@ -79,11 +79,11 @@ export class HttpGiftRepository implements GiftRepository {
     };
   }
 
-  private async createReply(input: NewReply): Promise<Reply> {
+  private async createReply(input: NewReply, passcode?: string): Promise<Reply> {
     const response = await fetch(this.url("/replies"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(input),
+      body: JSON.stringify(passcode ? { ...input, passcode } : input),
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
     const body: unknown = await response.json().catch(() => null);

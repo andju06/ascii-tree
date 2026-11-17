@@ -110,6 +110,50 @@ export class GiftLayer implements Updatable, Resettable {
     this.hoveredId = id;
   }
 
+  /** Updates the text of a visitor gift already on the tree. */
+  replaceText(id: string, author: string, message: string): void {
+    const entry = this.findEntry(id);
+    if (!entry || entry.traits.pinned) return;
+    entry.placed = { ...entry.placed, gift: { ...entry.placed.gift, author, message } };
+  }
+
+  /** Removes a visitor gift and rebuilds the pile around the gap. */
+  forget(id: string): void {
+    const index = this.entries.findIndex((entry) => entry.placed.gift.id === id && !entry.traits.pinned);
+    if (index < 0) return;
+    this.entries.splice(index, 1);
+    this.ids.delete(id);
+    if (this.hoveredId === id) this.hoveredId = null;
+    this.rebuild();
+  }
+
+  /**
+   * Applies a full guestbook snapshot. Existing gifts keep their place, changed text is updated,
+   * missing gifts leave, and gifts this browser has not seen yet fall in.
+   */
+  adopt(gifts: readonly Gift[], time: number): void {
+    const incoming = new Map(gifts.map((gift) => [gift.id, gift]));
+    for (const entry of this.entries) {
+      if (entry.traits.pinned) continue;
+      const next = incoming.get(entry.placed.gift.id);
+      if (!next || (next.author === entry.placed.gift.author && next.message === entry.placed.gift.message)) continue;
+      entry.placed = { ...entry.placed, gift: { ...entry.placed.gift, author: next.author, message: next.message } };
+    }
+
+    const stale = this.entries.filter((entry) => !entry.traits.pinned && !incoming.has(entry.placed.gift.id));
+    if (stale.length > 0) {
+      const gone = new Set(stale.map((entry) => entry.placed.gift.id));
+      this.entries = this.entries.filter((entry) => !gone.has(entry.placed.gift.id));
+      for (const id of gone) {
+        this.ids.delete(id);
+        if (this.hoveredId === id) this.hoveredId = null;
+      }
+      this.rebuild();
+    }
+
+    this.addGifts(gifts, time, "fall");
+  }
+
   /** Visitor entries, newest first. Pinned gifts such as the easter egg are omitted. */
   guestbook(): { gift: Gift; opened: boolean }[] {
     return this.entries

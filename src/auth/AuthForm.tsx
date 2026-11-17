@@ -1,25 +1,49 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { PasswordChangeModal } from "./PasswordChangeModal";
+import { PasswordField } from "./PasswordField";
+import { safeNext } from "./nextPath";
 import { AUTH_LIMITS, validateCredentials } from "./validation";
 
 type Mode = "login" | "signup";
 
-export function AuthForm({ mode }: { readonly mode: Mode }) {
-  const [email, setEmail] = useState("");
+export function AuthForm({
+  mode,
+  next = "/",
+  onClose,
+}: {
+  readonly mode: Mode;
+  readonly next?: string;
+  /** When set, closing stays on the current page instead of leaving it. */
+  readonly onClose?: () => void;
+}) {
+  const destination = safeNext(next);
+  const [currentMode, setCurrentMode] = useState<Mode>(mode);
+  const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
-  const [sessionEmail, setSessionEmail] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [mustChange, setMustChange] = useState(false);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") dismiss();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   useEffect(() => {
     const controller = new AbortController();
     void fetch("/api/auth/session", { signal: controller.signal })
       .then(async (response) => {
         if (!response.ok) return;
-        const body = (await response.json()) as { email?: unknown };
-        if (typeof body.email === "string") setSessionEmail(body.email);
+        const body = (await response.json()) as { loginId?: unknown; email?: unknown };
+        const name = typeof body.loginId === "string" ? body.loginId : body.email;
+        if (typeof name === "string") setSessionId(name);
       })
       .catch(() => undefined);
     return () => controller.abort();
@@ -27,11 +51,11 @@ export function AuthForm({ mode }: { readonly mode: Mode }) {
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (mode === "signup" && password !== confirm) {
+    if (currentMode === "signup" && password !== confirm) {
       setError("비밀번호 확인이 일치하지 않습니다.");
       return;
     }
-    const result = validateCredentials({ email, password });
+    const result = validateCredentials({ loginId, password }, currentMode);
     if (!result.ok) {
       setError(result.error);
       return;
@@ -40,22 +64,32 @@ export function AuthForm({ mode }: { readonly mode: Mode }) {
     setPending(true);
     setError("");
     try {
-      const response = await fetch(mode === "signup" ? "/api/auth/signup" : "/api/auth/login", {
+      const response = await fetch(currentMode === "signup" ? "/api/auth/signup" : "/api/auth/login", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(result.value),
+        body: JSON.stringify(
+          currentMode === "login" && destination === "/admin" ? { ...result.value, desk: true } : result.value,
+        ),
       });
+      const body = (await response.json().catch(() => null)) as { error?: unknown; admin?: unknown; passwordStatus?: unknown } | null;
       if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as { error?: unknown } | null;
         setError(typeof body?.error === "string" ? body.error : "요청에 실패했습니다.");
         return;
       }
-      window.location.assign("/");
+      if (currentMode === "login" && body?.passwordStatus === "temporary") {
+        setMustChange(true);
+        return;
+      }
+      finish();
     } catch {
       setError("요청에 실패했습니다.");
     } finally {
       setPending(false);
     }
+  }
+
+  function finish() {
+    window.location.assign(destination);
   }
 
   async function logout() {
@@ -67,7 +101,7 @@ export function AuthForm({ mode }: { readonly mode: Mode }) {
         setError("로그아웃에 실패했습니다.");
         return;
       }
-      setSessionEmail(null);
+      setSessionId(null);
     } catch {
       setError("로그아웃에 실패했습니다.");
     } finally {
@@ -75,70 +109,101 @@ export function AuthForm({ mode }: { readonly mode: Mode }) {
     }
   }
 
-  const title = mode === "signup" ? "회원가입" : "로그인";
+  const title = currentMode === "signup" ? "회원가입" : "로그인";
+
+  if (mustChange) {
+    return <PasswordChangeModal currentPassword={password} onDone={() => finish()} />;
+  }
+
+  function dismiss() {
+    if (onClose) onClose();
+    else window.location.assign("/");
+  }
+
+  function switchMode() {
+    setCurrentMode((current) => (current === "signup" ? "login" : "signup"));
+    setConfirm("");
+    setError("");
+  }
 
   return (
-    <main className="auth-page">
+    <div
+      className="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      onPointerDown={(event) => {
+        if (event.target === event.currentTarget) dismiss();
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") dismiss();
+      }}
+    >
       <form className="auth-card" onSubmit={(event) => void onSubmit(event)}>
-        <h1>{title}</h1>
-        {sessionEmail ? (
+        <h1>
+          {title}
+          <button type="button" className="hud-icon" aria-label="닫기" title="닫기" onClick={dismiss}>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 6l12 12" />
+              <path d="M18 6L6 18" />
+            </svg>
+          </button>
+        </h1>
+        {sessionId ? (
           <p className="auth-session">
-            {sessionEmail} 로 로그인되어 있습니다.
-            <button type="button" onClick={() => void logout()} disabled={pending}>
-              로그아웃
-            </button>
+            {sessionId} 로 로그인되어 있습니다.
+            <span>
+              <a href="/account">내정보</a>
+              <button type="button" onClick={() => void logout()} disabled={pending}>
+                로그아웃
+              </button>
+            </span>
           </p>
         ) : null}
         <label>
-          이메일
+          아이디
           <input
-            type="email"
-            name="email"
-            autoComplete="email"
-            maxLength={AUTH_LIMITS.emailMax}
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            name="loginId"
+            autoComplete="username"
+            minLength={AUTH_LIMITS.loginIdMin}
+            maxLength={AUTH_LIMITS.loginIdMax}
+            value={loginId}
+            onChange={(event) => setLoginId(event.target.value)}
             required
           />
         </label>
-        <label>
-          비밀번호
-          <input
-            type="password"
-            name="password"
-            autoComplete={mode === "signup" ? "new-password" : "current-password"}
-            minLength={AUTH_LIMITS.passwordMin}
-            maxLength={AUTH_LIMITS.passwordMax}
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            required
+        <PasswordField
+          label="비밀번호"
+          name="password"
+          autoComplete={currentMode === "signup" ? "new-password" : "current-password"}
+          value={password}
+          onChange={setPassword}
+        />
+        {currentMode === "signup" ? (
+          <p className="auth-note">비밀번호는 {AUTH_LIMITS.passwordMin}자 이상 {AUTH_LIMITS.passwordMax}자 이하로 입력해 주세요.</p>
+        ) : null}
+        {currentMode === "signup" ? (
+          <PasswordField
+            label="비밀번호 확인"
+            name="confirm"
+            autoComplete="new-password"
+            value={confirm}
+            onChange={setConfirm}
           />
-        </label>
-        {mode === "signup" ? (
-          <label>
-            비밀번호 확인
-            <input
-              type="password"
-              name="confirm"
-              autoComplete="new-password"
-              minLength={AUTH_LIMITS.passwordMin}
-              maxLength={AUTH_LIMITS.passwordMax}
-              value={confirm}
-              onChange={(event) => setConfirm(event.target.value)}
-              required
-            />
-          </label>
         ) : null}
         {error ? <p className="auth-error">{error}</p> : null}
         <button type="submit" disabled={pending}>
           {title}
         </button>
         <p className="auth-links">
-          {mode === "signup" ? <a href="/login">로그인</a> : <a href="/signup">회원가입</a>}
-          <a href="/admin">관리</a>
-          <a href="/">트리로 돌아가기</a>
+          <button type="button" onClick={switchMode}>
+            {currentMode === "signup" ? "로그인" : "회원가입"}
+          </button>
+          <button type="button" onClick={dismiss}>
+            트리로 돌아가기
+          </button>
         </p>
       </form>
-    </main>
+    </div>
   );
 }
