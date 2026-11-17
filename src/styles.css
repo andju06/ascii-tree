@@ -1074,6 +1074,40 @@ a.hud-icon {
   color: #98c379;
 }
 
+.auth-card button[type="submit"].is-pending {
+  position: relative;
+}
+
+.auth-card button[type="submit"].is-pending > span:first-child {
+  visibility: hidden;
+}
+
+.auth-spinner {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 14px;
+  height: 14px;
+  margin: auto;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .auth-spinner {
+    animation: auth-spin 0.7s linear infinite;
+  }
+}
+
+@keyframes auth-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .auth-card button:disabled {
   opacity: 0.45;
   cursor: default;
