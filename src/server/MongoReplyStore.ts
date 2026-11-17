@@ -63,6 +63,23 @@ export class MongoReplyStore implements ReplyStore {
     return found !== null;
   }
 
+  async updateText(id: string, text: { readonly author: string; readonly message: string }): Promise<boolean> {
+    const collection = await this.collection();
+    const result = await collection.updateOne({ _id: id }, { $set: { author: text.author, message: text.message } });
+    return result.matchedCount === 1;
+  }
+
+  async delete(id: string): Promise<boolean> {
+    const collection = await this.collection();
+    const result = await collection.deleteOne({ _id: id });
+    return result.deletedCount === 1;
+  }
+
+  async deleteForParent(parentId: string): Promise<void> {
+    const collection = await this.collection();
+    await collection.deleteMany({ parentId });
+  }
+
   async insert(reply: Reply, ipHash: string): Promise<void> {
     const collection = await this.collection();
     await collection.insertOne({

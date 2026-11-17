@@ -8,4 +8,6 @@ export interface GiftStore {
   createdAfter(since: Date, limit: number): Promise<Gift[]>;
   hasRecentFrom(ipHash: string, after: Date): Promise<boolean>;
   insert(gift: Gift, ipHash: string): Promise<void>;
+  updateText(id: string, text: { readonly author: string; readonly message: string }): Promise<boolean>;
+  delete(id: string): Promise<boolean>;
 }

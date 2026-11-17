@@ -14,17 +14,15 @@ export function isGiftShape(value: unknown): value is GiftShape {
   return typeof value === "string" && (GIFT_SHAPES as readonly string[]).includes(value);
 }
 
-export function validateNewGift(input: unknown): ValidationResult<NewGift> {
+export function validateGiftText(input: unknown): ValidationResult<{ author: string; message: string }> {
   if (typeof input !== "object" || input === null) return { ok: false, error: "잘못된 요청입니다." };
+  return authorAndMessage(input as Record<string, unknown>, GIFT_LIMITS.authorMax, GIFT_LIMITS.messageMax);
+}
+
+export function validateNewGift(input: unknown): ValidationResult<NewGift> {
+  const text = validateGiftText(input);
+  if (!text.ok) return text;
   const raw = input as Record<string, unknown>;
-
-  const author = cleanText(raw.author);
-  if (author.length === 0) return { ok: false, error: "닉네임을 입력해 주세요." };
-  if (author.length > GIFT_LIMITS.authorMax) return { ok: false, error: `닉네임은 ${GIFT_LIMITS.authorMax}자 이하로 입력해 주세요.` };
-
-  const message = cleanText(raw.message);
-  if (message.length === 0) return { ok: false, error: "메시지를 입력해 주세요." };
-  if (message.length > GIFT_LIMITS.messageMax) return { ok: false, error: `메시지는 ${GIFT_LIMITS.messageMax}자 이하로 입력해 주세요.` };
 
   if (!isGiftShape(raw.shape)) return { ok: false, error: "모양을 선택해 주세요." };
   const shape = raw.shape;
@@ -37,7 +35,23 @@ export function validateNewGift(input: unknown): ValidationResult<NewGift> {
     return { ok: false, error: "크기 값이 올바르지 않습니다." };
   }
 
-  return { ok: true, value: { author, message, shape, color, size } };
+  return { ok: true, value: { author: text.value.author, message: text.value.message, shape, color, size } };
+}
+
+function authorAndMessage(
+  raw: Record<string, unknown>,
+  authorMax: number,
+  messageMax: number,
+): ValidationResult<{ author: string; message: string }> {
+  const author = cleanText(raw.author);
+  if (author.length === 0) return { ok: false, error: "닉네임을 입력해 주세요." };
+  if (author.length > authorMax) return { ok: false, error: `닉네임은 ${authorMax}자 이하로 입력해 주세요.` };
+
+  const message = cleanText(raw.message);
+  if (message.length === 0) return { ok: false, error: "메시지를 입력해 주세요." };
+  if (message.length > messageMax) return { ok: false, error: `메시지는 ${messageMax}자 이하로 입력해 주세요.` };
+
+  return { ok: true, value: { author, message } };
 }
 
 /** Accepts stored or remote records; gifts saved before shapes existed default to boxes. */

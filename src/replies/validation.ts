@@ -8,26 +8,31 @@ function cleanText(value: unknown): string {
   return typeof value === "string" ? value.replace(CONTROL_CHARS, "").trim() : "";
 }
 
-export function validateNewReply(input: unknown): ValidationResult<NewReply> {
+export function validateReplyText(input: unknown): ValidationResult<{ author: string; message: string }> {
   if (typeof input !== "object" || input === null) return { ok: false, error: "잘못된 요청입니다." };
   const raw = input as Record<string, unknown>;
-
-  const parentId = cleanText(raw.parentId);
-  if (parentId.length === 0 || parentId.length > 80) return { ok: false, error: "답글을 달 글을 찾지 못했습니다." };
-
   const author = cleanText(raw.author);
   if (author.length === 0) return { ok: false, error: "닉네임을 입력해 주세요." };
   if (author.length > REPLY_LIMITS.authorMax) {
     return { ok: false, error: `닉네임은 ${REPLY_LIMITS.authorMax}자 이하로 입력해 주세요.` };
   }
-
   const message = cleanText(raw.message);
   if (message.length === 0) return { ok: false, error: "메시지를 입력해 주세요." };
   if (message.length > REPLY_LIMITS.messageMax) {
     return { ok: false, error: `메시지는 ${REPLY_LIMITS.messageMax}자 이하로 입력해 주세요.` };
   }
+  return { ok: true, value: { author, message } };
+}
 
-  return { ok: true, value: { parentId, author, message } };
+export function validateNewReply(input: unknown): ValidationResult<NewReply> {
+  const text = validateReplyText(input);
+  if (!text.ok) return text;
+  const raw = input as Record<string, unknown>;
+
+  const parentId = cleanText(raw.parentId);
+  if (parentId.length === 0 || parentId.length > 80) return { ok: false, error: "답글을 달 글을 찾지 못했습니다." };
+
+  return { ok: true, value: { parentId, author: text.value.author, message: text.value.message } };
 }
 
 export function parseReply(value: unknown): Reply | null {

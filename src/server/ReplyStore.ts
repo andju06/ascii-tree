@@ -9,4 +9,7 @@ export interface ReplyStore {
   countFor(parentId: string): Promise<number>;
   hasRecentFrom(ipHash: string, after: Date): Promise<boolean>;
   insert(reply: Reply, ipHash: string): Promise<void>;
+  updateText(id: string, text: { readonly author: string; readonly message: string }): Promise<boolean>;
+  delete(id: string): Promise<boolean>;
+  deleteForParent(parentId: string): Promise<void>;
 }

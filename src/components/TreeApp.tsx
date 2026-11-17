@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { startTreeApp } from "@/startTreeApp";
+import { NoticeLine } from "@/ui/NoticeLine";
 
 const GIFT_API_URL = process.env.NEXT_PUBLIC_GIFT_API_URL ?? "/api";
 
@@ -17,6 +18,7 @@ export function TreeApp() {
       <main className="app">
         <section className="viewport">
           <canvas id="scene" />
+          <NoticeLine />
           <button type="button" className="hud-icon wand" id="gift-rewind" aria-label="연 기록 지우기" title="연 기록 지우기">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M4.2 20.2 L12.2 11.1" />
