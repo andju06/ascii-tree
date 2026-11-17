@@ -1477,6 +1477,40 @@ a.hud-icon {
   padding: 0 12px;
 }
 
+.admin-skeleton-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+}
+
+.admin-skeleton-row span {
+  display: block;
+  height: 12px;
+  background: #1a1e29;
+}
+
+.admin-skeleton-row span:first-child {
+  width: 38%;
+}
+
+.admin-skeleton-row span:last-child {
+  width: 72%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .admin-skeleton-row span {
+    animation: admin-skeleton-pulse 1.2s ease-in-out infinite;
+  }
+}
+
+@keyframes admin-skeleton-pulse {
+  50% {
+    opacity: 0.4;
+  }
+}
+
 .admin-card textarea {
   min-height: 72px;
   padding: 8px 10px;

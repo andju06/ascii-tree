@@ -7,6 +7,7 @@ import type { Reply } from "@/replies/Reply";
 import { REPLY_LIMITS } from "@/replies/Reply";
 import { displayTreeName } from "@/spaces/treeName";
 import { adminError } from "./adminFetch";
+import { AdminSkeleton } from "./AdminSkeleton";
 
 interface EntryRow {
   readonly slug: string;
@@ -25,6 +26,7 @@ export function TreeCommentAdmin() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -39,6 +41,9 @@ export function TreeCommentAdmin() {
       })
       .catch(() => {
         if (!controller.signal.aborted) setError("트리 글을 불러오지 못했습니다.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
   }, []);
@@ -121,7 +126,8 @@ export function TreeCommentAdmin() {
     <>
       <h2>트리 댓글</h2>
       {error ? <p className="auth-error">{error}</p> : null}
-      {entries.length === 0 ? <p className="auth-note">글이 없습니다.</p> : null}
+      {loading ? <AdminSkeleton /> : null}
+      {!loading && !error && entries.length === 0 ? <p className="auth-note">글이 없습니다.</p> : null}
       {entries.map((entry) => (
         <article key={`${entry.slug}-${entry.gift.id}`} className="admin-entry">
           <header className="admin-tree-head">

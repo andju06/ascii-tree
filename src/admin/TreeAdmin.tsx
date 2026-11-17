@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { TreeFeatures } from "@/spaces/features";
 import { displayTreeName } from "@/spaces/treeName";
 import { adminError } from "./adminFetch";
+import { AdminSkeleton } from "./AdminSkeleton";
 
 interface TreeRow {
   readonly slug: string;
@@ -19,6 +20,7 @@ export function TreeAdmin() {
   const [trees, setTrees] = useState<TreeRow[]>([]);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -33,6 +35,9 @@ export function TreeAdmin() {
       })
       .catch(() => {
         if (!controller.signal.aborted) setError("트리를 불러오지 못했습니다.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
   }, []);
@@ -82,7 +87,8 @@ export function TreeAdmin() {
     <>
       <h2>유저 트리</h2>
       {error ? <p className="auth-error">{error}</p> : null}
-      {trees.length === 0 ? <p className="auth-note">트리가 없습니다.</p> : null}
+      {loading ? <AdminSkeleton /> : null}
+      {!loading && !error && trees.length === 0 ? <p className="auth-note">트리가 없습니다.</p> : null}
       {trees.map((tree) => (
         <article key={tree.slug} className="admin-entry">
           <header className="admin-tree-head">

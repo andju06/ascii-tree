@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { PasswordField } from "@/auth/PasswordField";
 import { validateCredentials } from "@/auth/validation";
 import { adminError } from "./adminFetch";
+import { AdminSkeleton } from "./AdminSkeleton";
 
 interface UserRow {
   readonly id: string;
@@ -25,6 +26,7 @@ export function UserAdmin() {
   const [error, setError] = useState("");
   const [formError, setFormError] = useState("");
   const [pending, setPending] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!creating) return;
@@ -49,6 +51,9 @@ export function UserAdmin() {
       })
       .catch(() => {
         if (!controller.signal.aborted) setError("계정을 불러오지 못했습니다.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
   }, []);
@@ -181,7 +186,8 @@ export function UserAdmin() {
         </div>
       ) : null}
       {error ? <p className="auth-error">{error}</p> : null}
-      {users.length === 0 ? <p className="auth-note">계정이 없습니다.</p> : null}
+      {loading ? <AdminSkeleton /> : null}
+      {!loading && !error && users.length === 0 ? <p className="auth-note">계정이 없습니다.</p> : null}
       {users.map((user) => (
         <article key={user.id} className="admin-entry admin-user">
           <div className="admin-user-id">

@@ -11,6 +11,7 @@ import { parseReplies } from "@/replies/validation";
 import { TreeAdmin } from "./TreeAdmin";
 import { TreeCommentAdmin } from "./TreeCommentAdmin";
 import { UserAdmin } from "./UserAdmin";
+import { AdminSkeleton } from "./AdminSkeleton";
 
 type EditTarget = { readonly kind: "gift" | "reply"; readonly id: string };
 type Tab = "main" | "users" | "trees" | "comments";
@@ -26,6 +27,7 @@ export function AdminDesk() {
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [tab, setTab] = useState<Tab>("main");
+  const [mainLoading, setMainLoading] = useState(true);
 
   async function logout() {
     setPending(true);
@@ -58,13 +60,19 @@ export function AdminDesk() {
         setGate(session.status === 401 ? "guest" : "forbidden");
         return;
       }
+      setGate("ready");
       const bookResponse = await fetch("/api/gifts", { signal: controller.signal });
       const bookBody = (await bookResponse.json()) as { gifts?: unknown; replies?: unknown };
+      if (!bookResponse.ok) {
+        setError("댓글을 불러오지 못했습니다.");
+        return;
+      }
       setGifts([...parseGifts(bookBody.gifts)].reverse());
       setReplies(parseReplies(bookBody.replies));
-      setGate("ready");
     })().catch(() => {
       if (!controller.signal.aborted) setGate("forbidden");
+    }).finally(() => {
+      if (!controller.signal.aborted) setMainLoading(false);
     });
     return () => controller.abort();
   }, []);
@@ -137,8 +145,11 @@ export function AdminDesk() {
 
   if (gate === "loading") {
     return (
-      <main className="auth-page">
-        <p>확인 중입니다.</p>
+      <main className="auth-page admin-page">
+        <section className="auth-card admin-card" aria-busy="true">
+          <h1>관리</h1>
+          <AdminSkeleton />
+        </section>
       </main>
     );
   }
@@ -202,7 +213,9 @@ export function AdminDesk() {
         {tab === "main" ? (
           <>
         <h2>메인 댓글</h2>
-        {gifts.map((gift) => (
+        {mainLoading ? <AdminSkeleton /> : null}
+        {!mainLoading && !error && gifts.length === 0 ? <p className="auth-note">댓글이 없습니다.</p> : null}
+        {mainLoading ? null : gifts.map((gift) => (
           <article key={gift.id} className="admin-entry">
             {editing?.kind === "gift" && editing.id === gift.id ? (
               <Editor
