@@ -196,7 +196,14 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
   let completed = false;
   let lastFrame: { fb: FrameBuffer; viewport: Viewport } | null = null;
   const skipDraw = requireElement<HTMLButtonElement>("skip-draw");
-  skipDraw.addEventListener("click", () => typer.finish(), { signal: lifetime.signal });
+  skipDraw.addEventListener(
+    "click",
+    () => {
+      guestbookPrint.finish();
+      typer.finish();
+    },
+    { signal: lifetime.signal },
+  );
 
   bus.on("stage", (stage) => scene.activate(stage, clock.time));
   bus.on("complete", () => {
@@ -406,7 +413,12 @@ export function startTreeApp({ giftApiUrl }: TreeAppOptions): () => void {
     const fb = rasterizer.rasterize(sources, camera, viewport, clock.time);
     presenter.draw(fb, clock.time);
     lastFrame = { fb, viewport };
-    editor.render(typer);
+    const sourceMoved = editor.render(typer);
+    guestbookPrint.syncLineNumbers();
+    if (guestbookPrint.showing) {
+      editor.releaseCaret();
+      if (sourceMoved) guestbookPrint.followCaret();
+    }
     hud.render(
       {
         time: clock.time,

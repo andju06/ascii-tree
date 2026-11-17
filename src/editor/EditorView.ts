@@ -21,10 +21,11 @@ export class EditorView {
     this.container.replaceChildren(...this.kept());
   }
 
-  render(source: TypingSource): void {
+  /** Returns true when this call drew new source and scrolled to it. */
+  render(source: TypingSource): boolean {
     if (source.cursor < this.renderedCursor) this.clear();
     if (this.lines.length === 0) this.appendLine();
-    if (source.cursor === this.renderedCursor) return;
+    if (source.cursor === this.renderedCursor) return false;
 
     const chunk = source.text.slice(this.renderedCursor, source.cursor);
     this.renderedCursor = source.cursor;
@@ -38,6 +39,14 @@ export class EditorView {
     }
     this.currentLine.code.innerHTML = this.highlighter.highlight(this.currentLine.text) + CARET;
     this.scrollToCurrentLine();
+    return true;
+  }
+
+  /** Drops the caret once the guestbook continues past the source. */
+  releaseCaret(): void {
+    if (this.lines.length === 0 || !this.currentLine.root.classList.contains("active")) return;
+    this.currentLine.code.innerHTML = this.highlighter.highlight(this.currentLine.text);
+    this.currentLine.root.classList.remove("active");
   }
 
   private get currentLine(): EditorLine {

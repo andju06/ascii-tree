@@ -17,6 +17,8 @@ export class GuestbookPrint implements Updatable {
   private target = "";
   private cursor = 0;
   private wait = 0;
+  /** Skip paints the whole guestbook at once. A later reload stays instant until restart. */
+  private instant = false;
 
   constructor(
     private readonly root: HTMLElement,
@@ -34,7 +36,32 @@ export class GuestbookPrint implements Updatable {
     this.root.hidden = false;
     if (!changed) return;
     if (common < this.cursor) this.cursor = common;
+    if (this.instant) this.cursor = this.target.length;
     this.paint();
+  }
+
+  get showing(): boolean {
+    return !this.root.hidden && this.target.length > 0;
+  }
+
+  /** Source lines are inserted ahead of the guestbook later in the same frame. */
+  syncLineNumbers(): void {
+    if (this.root.hidden) return;
+    this.stamp();
+  }
+
+  /** Keeps the blinking caret in view after the source scroller jumps to its own last line. */
+  followCaret(): void {
+    if (!this.showing) return;
+    this.revealCaret();
+  }
+
+  /** Prints every guestbook line already known, and any that arrive after skip. */
+  finish(): void {
+    this.instant = true;
+    this.cursor = this.target.length;
+    this.wait = 0;
+    if (!this.root.hidden) this.paint();
   }
 
   update(dt: number): void {
@@ -55,6 +82,7 @@ export class GuestbookPrint implements Updatable {
     this.target = "";
     this.cursor = 0;
     this.wait = 0;
+    this.instant = false;
     this.root.hidden = true;
     this.root.replaceChildren();
   }
@@ -80,17 +108,14 @@ export class GuestbookPrint implements Updatable {
   private paint(): void {
     const text = this.target.slice(0, this.cursor);
     const parts = text.length === 0 ? [] : text.split("\n");
-    const typing = this.cursor < this.target.length;
-    this.root.replaceChildren(
-      ...parts.map((part, index) => this.line(part, typing && index === parts.length - 1)),
-    );
+    this.root.replaceChildren(...parts.map((part, index) => this.line(part, index === parts.length - 1)));
     this.stamp();
     this.revealCaret();
   }
 
   private line(text: string, caret: boolean): HTMLDivElement {
     const row = document.createElement("div");
-    row.className = "line";
+    row.className = caret ? "line active" : "line";
     const gutter = document.createElement("span");
     gutter.className = "gutter";
     const code = document.createElement("span");
